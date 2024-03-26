@@ -1,0 +1,13 @@
+
+#ifndef __SYSTEM_6502_CONFIG_H__
+#define __SYSTEM_6502_CONFIG_H__
+
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+
+#cmakedefine ISA_6502_HOST_IS_LE
+
+#endif /* __SYSTEM_6502_CONFIG_H__ */
