@@ -20,7 +20,7 @@ An executor object bundles the registers, memory, and ISA together into a single
 
 ### Future extension
 
-The code is structure such that augmented 6502 ISAs (like the 6502X, 65C02) can also be implemented.  In theory, additional staged callback functions or modified functions would be assembled into additional decode dispatch tables.  The API already includes a method by which the consumer can select which ISA dialect to configure at runtime.
+The code is structured such that augmented 6502 ISAs (like the 6502X, 65C02) can also be implemented.  In theory, additional staged callback functions or modified functions would be assembled into additional decode dispatch tables.  The API already includes a method by which the consumer can select which ISA dialect to configure at runtime.
 
 
 ## Building the software
