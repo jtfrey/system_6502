@@ -15,7 +15,7 @@ __isa_6502_CPX(
         case 1:
             ADDR = 0x0000;
             if ( opcode_context->addressing_mode == isa_6502_addressing_immediate ) {
-                ALU = memory_read(opcode_context->memory, ++opcode_context->registers->PC);
+                ALU = memory_read(opcode_context->memory, opcode_context->registers->PC++);
                 at_stage = isa_6502_instr_stage_end;
             } else {
 #ifdef ISA_6502_HOST_IS_LE
@@ -23,7 +23,7 @@ __isa_6502_CPX(
 #else
                 ADDR_ptr = ((uint8_t*)&ADDR) + 1;
 #endif
-                *ADDR_ptr = memory_read(opcode_context->memory, ++opcode_context->registers->PC);
+                *ADDR_ptr = memory_read(opcode_context->memory, opcode_context->registers->PC++);
 #ifdef ISA_6502_HOST_IS_LE
                 ADDR_ptr++;
 #else
@@ -39,7 +39,7 @@ __isa_6502_CPX(
                     at_stage = isa_6502_instr_stage_end;
                     break;
                 case isa_6502_addressing_absolute:
-                    *ADDR_ptr = memory_read(opcode_context->memory, ++opcode_context->registers->PC);
+                    *ADDR_ptr = memory_read(opcode_context->memory, opcode_context->registers->PC++);
                     break;
             }
             break;

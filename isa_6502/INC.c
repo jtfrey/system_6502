@@ -22,7 +22,7 @@ __isa_6502_INC(
 #else
             ADDR_ptr = ((uint8_t*)&ADDR) + 1;
 #endif
-            *ADDR_ptr = memory_read(opcode_context->memory, ++opcode_context->registers->PC);
+            *ADDR_ptr = memory_read(opcode_context->memory, opcode_context->registers->PC++);
 #ifdef ISA_6502_HOST_IS_LE
             ADDR_ptr++;
 #else
@@ -40,7 +40,7 @@ __isa_6502_INC(
                     break;
                 case isa_6502_addressing_absolute:
                 case isa_6502_addressing_absolute_x_indexed:
-                    *ADDR_ptr = memory_read(opcode_context->memory, ++opcode_context->registers->PC);
+                    *ADDR_ptr = memory_read(opcode_context->memory, opcode_context->registers->PC++);
                     break;
             }
             break;

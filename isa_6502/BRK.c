@@ -47,7 +47,7 @@ __isa_6502_BRK(
 #else
             PC_ptr = ((uint8_t*)&opcode_context->registers->PC);
 #endif
-            *PC_ptr = memory_read(opcode_context->memory, MEMORY_ADDR_NMI_VECTOR) - 1;
+            *PC_ptr = memory_read(opcode_context->memory, MEMORY_ADDR_NMI_VECTOR);
 #ifdef ISA_6502_HOST_IS_LE
             PC_ptr--;
 #else

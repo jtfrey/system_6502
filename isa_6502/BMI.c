@@ -13,7 +13,7 @@ __isa_6502_BMI(
     switch ( opcode_context->cycle_count ) {
         case 1:
             ADDR = 0x0000;
-            DELTA = memory_read(opcode_context->memory, ++opcode_context->registers->PC); 
+            DELTA = memory_read(opcode_context->memory, opcode_context->registers->PC++); 
             break;
         
         case 2:
