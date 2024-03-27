@@ -79,7 +79,7 @@ __isa_6502_INC(
     if ( at_stage == isa_6502_instr_stage_end) {
         ALU++;
         memory_write(opcode_context->memory, ADDR, ALU & 0x00FF);
-        registers_status_with_value(opcode_context->registers, ALU & 0x00FF);
+        registers_status_with_value(opcode_context->registers, ALU & 0x00FF, registers_Carry_ignore);
     }
     return at_stage;
 }

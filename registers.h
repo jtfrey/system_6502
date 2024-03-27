@@ -140,9 +140,10 @@ enum {
                                         (R)->SR.FIELDS.N = (((R)->Y & 0x80) == 0x80); \
                                         if ( (CRY) < registers_Carry_ignore ) (R)->SR.FIELDS.C = ((CRY) ? 1 : 0)
                                         
-#   define registers_status_with_value(R, V) \
+#   define registers_status_with_value(R, V, CRY) \
                                         (R)->SR.FIELDS.Z = ((V) == 0), \
-                                        (R)->SR.FIELDS.N = (((V) & 0x80) == 0x80)
+                                        (R)->SR.FIELDS.N = (((V) & 0x80) == 0x80); \
+                                        if ( (CRY) < registers_Carry_ignore ) (R)->SR.FIELDS.C = ((CRY) ? 1 : 0)
 #else
     /*
      * @function registers_did_set_A
@@ -173,7 +174,7 @@ enum {
      *
      * Update SR bits according to the given immediate value.
      */
-    void registers_status_with_value(registers_t *the_registers, uint8_t value);
+    void registers_status_with_value(registers_t *the_registers, uint8_t value, int carry_status);
 #endif
 
 #endif /* __REGISTERS_H__ */

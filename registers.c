@@ -124,11 +124,13 @@ void registers_did_set_Y(
 void
 registers_status_with_value(
     registers_t     *the_registers,
-    uint8_t         value
+    uint8_t         value,
+    int             carry_status
 )
 {
     the_registers->SR.FIELDS.Z = ( value == 0 );
     the_registers->SR.FIELDS.N = ( (value & 0x80) == 0x80 );
+    if ( carry_status < registers_Carry_ignore ) the_registers->SR.FIELDS.C = carry_status;
 }
 
 #endif

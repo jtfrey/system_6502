@@ -16,6 +16,12 @@ __isa_6502_ROR(
             ADDR = 0x0000;
             if ( opcode_context->addressing_mode == isa_6502_addressing_accumulator ) {
                 ALU = opcode_context->registers->A;
+                ALU = (ALU >> 1) | (ALU << 8) | ((uint8_t)opcode_context->registers->SR.FIELDS.C << 7);
+                opcode_context->registers->A = ALU & 0x00FF;
+                registers_did_set_A(
+                        opcode_context->registers,
+                        ((ALU & 0xFF00) != 0) ? registers_Carry_set : registers_Carry_clear
+                    );
                 at_stage = isa_6502_instr_stage_end;
             } else {
 #ifdef ISA_6502_HOST_IS_LE
@@ -80,9 +86,10 @@ __isa_6502_ROR(
     }
     if ( at_stage == isa_6502_instr_stage_end) {
         ALU = (ALU >> 1) | (ALU << 8) | ((uint8_t)opcode_context->registers->SR.FIELDS.C << 7);
-        opcode_context->registers->A = ALU & 0x00FF;
-        registers_did_set_A(
+        memory_write(opcode_context->memory, ADDR, ALU & 0x00FF);
+        registers_status_with_value(
                 opcode_context->registers,
+                ALU & 0x00FF,
                 ((ALU & 0xFF00) != 0) ? registers_Carry_set : registers_Carry_clear
             );
     }
