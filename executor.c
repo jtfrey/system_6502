@@ -192,7 +192,7 @@ executor_launch_at_address_range(
         if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_pre_fetch_opcode) )
             callback_fn(the_executor, isa_6502_instr_stage_pre_fetch_opcode,
                             isa_6502_opcode_null(), isa_6502_addressing_undefined, NULL, 0);
-        instr_context.opcode.BYTE = memory_read(MEMORY, REGISTERS->PC);
+        instr_context.opcode.BYTE = memory_read(MEMORY, REGISTERS->PC++);
         instr_context.cycle_count++, total_cycles++;
         if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_post_fetch_opcode) )
             callback_fn(the_executor, isa_6502_instr_stage_post_fetch_opcode,
@@ -233,8 +233,6 @@ executor_launch_at_address_range(
         if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_end) )
             callback_fn(the_executor, isa_6502_instr_stage_end,
                             instr_context.opcode, dispatch->addressing_mode, dispatch, instr_context.cycle_count);
-        
-        REGISTERS->PC++;
     }        
     if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_execution_complete) )
         callback_fn(the_executor, isa_6502_instr_stage_execution_complete,
@@ -260,15 +258,13 @@ executor_boot(
     #define ISA             the_executor->isa
     
     uint64_t                total_cycles = 0;
-    int                     do_reset_jump = 1;
     uint32_t                PC_end = 0xFFFF;
     
-    /* Load the starting address into the PC; we're faking a JMP instruction with
-       operand at $FFFC: */
+    /* Load the value of the RESET vector into the PC: */
     if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_pre_load_PC) )
         callback_fn(the_executor, isa_6502_instr_stage_pre_load_PC,
                         isa_6502_opcode_null(), isa_6502_addressing_undefined, NULL, 0);
-    REGISTERS->PC = MEMORY_ADDR_RES_VECTOR - 1;
+    REGISTERS->PC = (MEMORY->RAM.BYTES[MEMORY_ADDR_RES_VECTOR + 1] << 8) | MEMORY->RAM.BYTES[MEMORY_ADDR_RES_VECTOR];
     if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_post_load_PC) )
         callback_fn(the_executor, isa_6502_instr_stage_post_load_PC,
                         isa_6502_opcode_null(), isa_6502_addressing_undefined, NULL, 0);
@@ -283,22 +279,16 @@ executor_boot(
         isa_6502_opcode_dispatch_t  *dispatch;
         isa_6502_instr_stage_t      next_stage;
         
-        if ( do_reset_jump ) {
-            do_reset_jump = 0;
-            /* JMP ($FFFC) */
-            opcode_ptr->BYTE = 0x4C;
-        } else {
-            /* Read the opcode */
-            if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_pre_fetch_opcode) )
-                callback_fn(the_executor, isa_6502_instr_stage_pre_fetch_opcode,
-                                isa_6502_opcode_null(), isa_6502_addressing_undefined, NULL, 0);
-            instr_context.opcode.BYTE = memory_read(MEMORY, REGISTERS->PC);
-            instr_context.cycle_count++, total_cycles++;
-            if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_post_fetch_opcode) )
-                callback_fn(the_executor, isa_6502_instr_stage_post_fetch_opcode,
-                                instr_context.opcode, isa_6502_addressing_undefined, NULL, instr_context.cycle_count);
-        }
-        
+        /* Read the opcode */
+        if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_pre_fetch_opcode) )
+            callback_fn(the_executor, isa_6502_instr_stage_pre_fetch_opcode,
+                            isa_6502_opcode_null(), isa_6502_addressing_undefined, NULL, 0);
+        instr_context.opcode.BYTE = memory_read(MEMORY, REGISTERS->PC++);
+        instr_context.cycle_count++, total_cycles++;
+        if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_post_fetch_opcode) )
+            callback_fn(the_executor, isa_6502_instr_stage_post_fetch_opcode,
+                            instr_context.opcode, isa_6502_addressing_undefined, NULL, instr_context.cycle_count);
+                            
         /* Decode the opcode: */
         if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_pre_decode_opcode) )
             callback_fn(the_executor, isa_6502_instr_stage_pre_decode_opcode,
@@ -334,8 +324,6 @@ executor_boot(
         if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_end) )
             callback_fn(the_executor, isa_6502_instr_stage_end,
                             instr_context.opcode, dispatch->addressing_mode, dispatch, instr_context.cycle_count);
-        
-        REGISTERS->PC++;
     }        
     if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_execution_complete) )
         callback_fn(the_executor, isa_6502_instr_stage_execution_complete,

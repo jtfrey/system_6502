@@ -135,7 +135,7 @@ registers_status_with_value(
 
 //
 
-#ifdef HAVE_REGISTERS_TEST
+#ifdef ENABLE_REGISTERS_TEST
 
 int
 main()

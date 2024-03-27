@@ -545,7 +545,7 @@ memory_fprintf(
 
 //
 
-#ifdef HAVE_MEMORY_TEST
+#ifdef ENABLE_MEMORY_TEST
 
 void
 observe(

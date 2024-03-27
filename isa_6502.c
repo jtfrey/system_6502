@@ -433,7 +433,7 @@ isa_6502_table_lookup_dispatch(
 
 //
 
-#ifdef HAVE_ISA_6502_TEST
+#ifdef ENABLE_ISA_6502_TEST
 
 #include <stdio.h>
 
@@ -528,7 +528,7 @@ main()
         isa_6502_opcode_dispatch_t  *dispatch;
         isa_6502_instr_stage_t      next_stage;
         
-        instr_context.opcode.BYTE = memory_read(&ram, cpu_registers.PC);
+        instr_context.opcode.BYTE = memory_read(&ram, cpu_registers.PC++);
         printf("FETCHED:        %02hhX => %d %d %d\n", instr_context.opcode.BYTE,
                 instr_context.opcode.FIELDS.A, instr_context.opcode.FIELDS.B, instr_context.opcode.FIELDS.C);
         dispatch = &isa.table[instr_context.opcode.FIELDS.C][instr_context.opcode.FIELDS.A][instr_context.opcode.FIELDS.B];
@@ -546,8 +546,6 @@ main()
         printf("MEMORY:         "); memory_fprintf(&ram, stdout, 0x0000, 0x0003);
         printf("MEMORY:         "); memory_fprintf(&ram, stdout, 0x0200, 0x0204);
         printf("\n");
-        
-        ++cpu_registers.PC;
     }
     printf("TOTAL CYCLES:   %llu\n", total_cycles);
     
