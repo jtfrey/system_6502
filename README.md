@@ -33,3 +33,20 @@ $ cd build
 $ cmake ..
 $ make
 ```
+
+## Example
+
+The `cc65` compiler can be used to assemble the code in the [examples](./examples) directory.  The program in [multiply.s](./examples/multiply.s) can be compiled using `cl65 -cpu 6502 -t none -o multiply.bin multiply.s` and then executed at it's origin of `$2000`:
+
+```
+$ ./system_6502 -l ../examples/multiply.bin@0x2000:56 -d 0x2000:56 -x 0x2000:56
+INFO:  read 56 ($0038) bytes into memory range $2000-$2037
+2000 : A2 00 A0 00 CA D0 FD 88    D0 FA A2 00 8A 9D 00 21    ...............!
+2010 : E8 D0 F9 A2 00 20 2A 20    E8 20 2A 20 E8 20 2A 20    ..... * . * . * 
+2020 : E8 20 2A 20 E8 D0 EE 4C    37 20 48 BD 00 21 0A 7D    . * ...L7 H..!.}
+2030 : 00 21 9D 00 21 68 60 00                               .!..!h`.
+INFO:  executing from $2000-$2037
+INFO:  1.4e+08 cycles per second
+```
+
+140 MHz isn't too shabby.
