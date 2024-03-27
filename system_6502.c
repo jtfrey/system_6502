@@ -38,7 +38,8 @@ our_executor_stage_callback(
 //
 
 const struct option cli_options[] = {
-        { "help",       required_argument,      NULL,   'h' },
+        { "help",       no_argument,            NULL,   'h' },
+        { "version",    no_argument,            NULL,   'V' },
         { "load",       required_argument,      NULL,   'l' },
         { "save",       required_argument,      NULL,   's' },
         { "poke",       required_argument,      NULL,   'p' },
@@ -49,7 +50,7 @@ const struct option cli_options[] = {
         { "exec",       required_argument,      NULL,   'x' },
         { NULL,         no_argument,            NULL,    0  }
     };
-const char *cli_options_str = "hl:s:p:d:nrbx:";
+const char *cli_options_str = "hVl:s:p:d:nrbx:";
 
 //
 
@@ -321,6 +322,10 @@ main(
         switch ( optch ) {
             case 'h':
                 usage(argv[0]);
+                exit(0);
+            
+            case 'V': 
+                printf("%s\n", PROJECT_NAME " version " system_6502_VERSION);
                 exit(0);
             
             case 'n':
