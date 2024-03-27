@@ -8,7 +8,7 @@ The best resource I found for my effort was [this summary of the architecture](h
 
 ## Organization
 
-The 6502 register set is presented as a data structure encapulating an 8-bit value.
+The 6502 register set is presented as a data structure encapulating an 8-bit value.  A type union breaks the byte out into bitfield components for easy access.
 
 The 64 KiB of memory is presented as a data structure encapsulating an array of 65536 8-bit values.  A type union presents the same array alternatively as an array of 256 pages containing 256 bytes each.
 
