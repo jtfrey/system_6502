@@ -9,14 +9,14 @@
 #include <string.h>
 #include <fcntl.h>
 
-#cmakedefine system_6502_VERSION "@system_6502_VERSION@"
-#ifndef system_6502_VERSION
-#   define system_6502_VERSION "<unknown>"
+#cmakedefine SYSTEM_6502_NAME "@SYSTEM_6502_NAME@"
+#ifndef SYSTEM_6502_NAME
+#   define SYSTEM_6502_NAME "system_6502"
 #endif
 
-#cmakedefine PROJECT_NAME "@PROJECT_NAME@"
-#ifndef PROJECT_NAME
-#   define PROJECT_NAME "system_6502"
+#cmakedefine SYSTEM_6502_VERSION "@SYSTEM_6502_VERSION@"
+#ifndef SYSTEM_6502_VERSION
+#   define SYSTEM_6502_VERSION "<unknown>"
 #endif
 
 #cmakedefine ISA_6502_HOST_IS_LE

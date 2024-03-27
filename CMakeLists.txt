@@ -26,6 +26,12 @@ else ()
 endif()
 
 #
+# Add project info/version variables for the sake of the configure file:
+#
+set(SYSTEM_6502_NAME ${PROJECT_NAME})
+set(SYSTEM_6502_VERSION ${system_6502_VERSION})
+
+#
 # Generate our common header file and have all targets in this
 # directory use the binary directory on the search path:
 #

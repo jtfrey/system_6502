@@ -325,7 +325,7 @@ main(
                 exit(0);
             
             case 'V': 
-                printf("%s\n", PROJECT_NAME " version " system_6502_VERSION);
+                printf("%s\n", SYSTEM_6502_NAME " version " SYSTEM_6502_VERSION);
                 exit(0);
             
             case 'n':
