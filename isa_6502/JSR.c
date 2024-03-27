@@ -50,7 +50,7 @@ __isa_6502_JSR(
         case 5:
             /* Read high byte: */
             *ADDR_ptr = memory_read(opcode_context->memory, ++opcode_context->registers->PC);
-            opcode_context->registers->PC = ADDR;
+            opcode_context->registers->PC = ADDR - 1;
             at_stage = isa_6502_instr_stage_end;
             break;
     }

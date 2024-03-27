@@ -57,7 +57,7 @@ executor_free(
     executor_t      *the_executor
 )
 {
-    if ( (the_executor->flags & executor_flags_is_bundle) == executor_flags_is_bundle ) {
+    if ( (the_executor->flags & executor_flags_is_bundle) != executor_flags_is_bundle ) {
         registers_free(the_executor->registers);
         memory_free(the_executor->memory);
         isa_6502_table_free(the_executor->isa);
@@ -263,7 +263,8 @@ executor_boot(
     int                     do_reset_jump = 1;
     uint32_t                PC_end = 0xFFFF;
     
-    /* Load the starting address into the PC */
+    /* Load the starting address into the PC; we're faking a JMP instruction with
+       operand at $FFFC: */
     if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_pre_load_PC) )
         callback_fn(the_executor, isa_6502_instr_stage_pre_load_PC,
                         isa_6502_opcode_null(), isa_6502_addressing_undefined, NULL, 0);
@@ -285,7 +286,7 @@ executor_boot(
         if ( do_reset_jump ) {
             do_reset_jump = 0;
             /* JMP ($FFFC) */
-            opcode_ptr->BYTE = 0x6C;
+            opcode_ptr->BYTE = 0x4C;
         } else {
             /* Read the opcode */
             if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_pre_fetch_opcode) )
