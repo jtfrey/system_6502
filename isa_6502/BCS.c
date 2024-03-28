@@ -33,7 +33,7 @@ __isa_6502_BCS(
             break;
     }
     if ( at_stage == isa_6502_instr_stage_end ) {
-        if ( opcode_context->registers->SR.FIELDS.C ) opcode_context->registers->PC = ADDR;
+        if ( registers_SR_get_bit(opcode_context->registers, register_SR_Bit_C) ) opcode_context->registers->PC = ADDR;
     }
     return at_stage;
 }

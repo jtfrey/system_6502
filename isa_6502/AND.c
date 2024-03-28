@@ -120,7 +120,7 @@ __isa_6502_AND(
             break;
     }
     if ( at_stage == isa_6502_instr_stage_end) {
-        opcode_context->registers->A &= ALU;
+        opcode_context->registers->A &= (uint8_t)ALU;
         registers_did_set_A(opcode_context->registers, registers_Carry_ignore);
     }
     return at_stage;

@@ -58,7 +58,7 @@ __isa_6502_CPY(
             flag_bits |= register_SR_Bit_C | register_SR_Bit_Z;
         else
             flag_bits |= register_SR_Bit_N;
-        opcode_context->registers->SR.BYTE = (opcode_context->registers->SR.BYTE & ~(register_SR_Bit_C | register_SR_Bit_Z | register_SR_Bit_N)) | flag_bits;
+        opcode_context->registers->SR = (opcode_context->registers->SR & ~(register_SR_Bit_C | register_SR_Bit_Z | register_SR_Bit_N)) | flag_bits;
     }
     return at_stage;
 }

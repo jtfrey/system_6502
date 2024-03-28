@@ -48,7 +48,7 @@ __isa_6502_BIT(
         uint8_t     flag_bits = (opcode_context->registers->A & ALU);
         
         if ( opcode_context->registers->A == 0 ) flag_bits |= register_SR_Bit_Z;
-        opcode_context->registers->SR.BYTE = (opcode_context->registers->SR.BYTE & ~(register_SR_Bit_V | register_SR_Bit_Z | register_SR_Bit_N)) | flag_bits;
+        opcode_context->registers->SR = (opcode_context->registers->SR & ~(register_SR_Bit_V | register_SR_Bit_Z | register_SR_Bit_N)) | flag_bits;
     }
     return at_stage;
 }

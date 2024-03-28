@@ -5,6 +5,6 @@ __isa_6502_CLD(
     isa_6502_instr_stage_t      at_stage
 )
 {
-    opcode_context->registers->SR.FIELDS.D = 0;
+    registers_SR_set_bit(opcode_context->registers, register_SR_Bit_D, 0);
     return isa_6502_instr_stage_end;
 }

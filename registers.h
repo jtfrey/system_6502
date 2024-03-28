@@ -45,20 +45,13 @@ typedef struct registers {
     uint8_t     A, X, Y;
     uint8_t     SP;
     uint16_t    PC;
-    union {
-        struct {
-            uint8_t C : 1;      /* Carry */
-            uint8_t Z : 1;      /* Zero */
-            uint8_t I : 1;      /* Interrupt inhibit */
-            uint8_t D : 1;      /* Decimal */
-            uint8_t B : 1;      /* Break */
-            uint8_t IGN : 1;    /* Ignored */
-            uint8_t V : 1;      /* Overflow */
-            uint8_t N : 1;      /* Sign/Negative */
-        } FIELDS;
-        uint8_t BYTE;
-    } SR;                       /* A.k.a. P register */
+    uint8_t     SR;
 } registers_t;
+
+static inline int registers_SR_get_bit(registers_t *the_registers, int which_bit)
+                    { return (the_registers->SR & which_bit) ? 1 : 0; }
+static inline void registers_SR_set_bit(registers_t *the_registers, int which_bit, int value)
+                    { if ( value ) the_registers->SR |= which_bit; else the_registers->SR &= ~which_bit; }
 
 /*
  * @function registers_alloc
@@ -124,57 +117,77 @@ enum {
     registers_Carry_ignore
 };
 
-#ifndef REGISTERS_DID_SET_ARE_FUNCTIONS
+
 /*
- * By default the SR updates are handled as macros.  At compile time the
- * REGISTERS_DID_SET_ARE_FUNCTIONS macro can be defined to switch to their
- * being functions instead.
+ * @function registers_did_set_A
+ *
+ * Update SR bits according to the value of the accumulator (A) and the
+ * carry_status.
  */
-#   define registers_did_set_A(R, CRY)  (R)->SR.FIELDS.Z = ((R)->A == 0), \
-                                        (R)->SR.FIELDS.N = (((R)->A & 0x80) == 0x80); \
-                                        if ( (CRY) < registers_Carry_ignore ) (R)->SR.FIELDS.C = ((CRY) ? 1 : 0)
-#   define registers_did_set_X(R, CRY)  (R)->SR.FIELDS.Z = ((R)->X == 0), \
-                                        (R)->SR.FIELDS.N = (((R)->X & 0x80) == 0x80); \
-                                        if ( (CRY) < registers_Carry_ignore ) (R)->SR.FIELDS.C = ((CRY) ? 1 : 0)
-#   define registers_did_set_Y(R, CRY)  (R)->SR.FIELDS.Z = ((R)->Y == 0), \
-                                        (R)->SR.FIELDS.N = (((R)->Y & 0x80) == 0x80); \
-                                        if ( (CRY) < registers_Carry_ignore ) (R)->SR.FIELDS.C = ((CRY) ? 1 : 0)
-                                        
-#   define registers_status_with_value(R, V, CRY) \
-                                        (R)->SR.FIELDS.Z = ((V) == 0), \
-                                        (R)->SR.FIELDS.N = (((V) & 0x80) == 0x80); \
-                                        if ( (CRY) < registers_Carry_ignore ) (R)->SR.FIELDS.C = ((CRY) ? 1 : 0)
-#else
-    /*
-     * @function registers_did_set_A
-     *
-     * Update SR bits according to the value of the accumulator (A) and the
-     * carry_status.
-     */
-    void registers_did_set_A(registers_t *the_registers, int carry_status);
-    
-    /*
-     * @function registers_did_set_X
-     *
-     * Update SR bits according to the value of the X-index register (X) and the
-     * carry_status.
-     */
-    void registers_did_set_X(registers_t *the_registers, int carry_status);
-    
-    /*
-     * @function registers_did_set_Y
-     *
-     * Update SR bits according to the value of the Y-index register (Y) and the
-     * carry_status.
-     */
-    void registers_did_set_Y(registers_t *the_registers, int carry_status);
-    
-    /*
-     * @function registers_status_with_value
-     *
-     * Update SR bits according to the given immediate value.
-     */
-    void registers_status_with_value(registers_t *the_registers, uint8_t value, int carry_status);
-#endif
+static inline void
+registers_did_set_A(
+    registers_t *the_registers,
+    int         carry_status
+)
+{
+    registers_SR_set_bit(the_registers, register_SR_Bit_Z, ( the_registers->A == 0 ));
+    registers_SR_set_bit(the_registers, register_SR_Bit_N, ( (the_registers->A & 0x80) == 0x80 ));
+    if ( carry_status < registers_Carry_ignore )
+        registers_SR_set_bit(the_registers, register_SR_Bit_C, carry_status);
+}
+
+/*
+ * @function registers_did_set_X
+ *
+ * Update SR bits according to the value of the X-index register (X) and the
+ * carry_status.
+ */
+static inline void
+registers_did_set_X(
+    registers_t *the_registers,
+    int         carry_status
+)
+{
+    registers_SR_set_bit(the_registers, register_SR_Bit_Z, ( the_registers->X == 0 ));
+    registers_SR_set_bit(the_registers, register_SR_Bit_N, ( (the_registers->X & 0x80) == 0x80 ));
+    if ( carry_status < registers_Carry_ignore )
+        registers_SR_set_bit(the_registers, register_SR_Bit_C, carry_status);
+}
+
+/*
+ * @function registers_did_set_Y
+ *
+ * Update SR bits according to the value of the Y-index register (Y) and the
+ * carry_status.
+ */
+static inline void
+registers_did_set_Y(
+    registers_t *the_registers,
+    int         carry_status
+)
+{
+    registers_SR_set_bit(the_registers, register_SR_Bit_Z, ( the_registers->Y == 0 ));
+    registers_SR_set_bit(the_registers, register_SR_Bit_N, ( (the_registers->Y & 0x80) == 0x80 ));
+    if ( carry_status < registers_Carry_ignore )
+        registers_SR_set_bit(the_registers, register_SR_Bit_C, carry_status);
+}
+
+/*
+ * @function registers_status_with_value
+ *
+ * Update SR bits according to the given immediate value.
+ */
+static inline void
+registers_status_with_value(
+    registers_t *the_registers,
+    uint8_t     value,
+    int         carry_status
+)
+{
+    registers_SR_set_bit(the_registers, register_SR_Bit_Z, ( value == 0 ));
+    registers_SR_set_bit(the_registers, register_SR_Bit_N, ( (value & 0x80) == 0x80 ));
+    if ( carry_status < registers_Carry_ignore )
+        registers_SR_set_bit(the_registers, register_SR_Bit_C, carry_status);
+}
 
 #endif /* __REGISTERS_H__ */

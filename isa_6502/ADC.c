@@ -120,16 +120,16 @@ __isa_6502_ADC(
             break;
     }
     if ( at_stage == isa_6502_instr_stage_end) {
-        uint16_t    SUM = ALU + opcode_context->registers->A + opcode_context->registers->SR.FIELDS.C;
+        uint16_t    SUM = ALU + (uint16_t)opcode_context->registers->A + registers_SR_get_bit(opcode_context->registers, register_SR_Bit_C);
         uint8_t     flag_bits = (SUM) ? 0 : register_SR_Bit_Z;
         
-        if ( (opcode_context->registers->SR.FIELDS.D) && ((SUM & 0x0010) || ((SUM & 0x000F) > 0x0009)) ) SUM += 0x0006;
+        if ( registers_SR_get_bit(opcode_context->registers, register_SR_Bit_D) && ((SUM & 0x0010) || ((SUM & 0x000F) > 0x0009)) ) SUM += 0x0006;
     
         if ( SUM & 0xFF00 ) flag_bits |= register_SR_Bit_C;
-        if ( ~(opcode_context->registers->A ^ ALU) & (opcode_context->registers->A ^ SUM) & 0x80 ) flag_bits |= register_SR_Bit_V;
-        opcode_context->registers->SR.BYTE = (opcode_context->registers->SR.BYTE & ~(register_SR_Bit_C | register_SR_Bit_Z | register_SR_Bit_V)) | flag_bits;
+        if ( ~((uint16_t)opcode_context->registers->A ^ ALU) & ((uint16_t)opcode_context->registers->A ^ SUM) & 0x80 ) flag_bits |= register_SR_Bit_V;
+        opcode_context->registers->SR = (opcode_context->registers->SR & ~(register_SR_Bit_C | register_SR_Bit_Z | register_SR_Bit_V)) | flag_bits;
         
-        if ( (opcode_context->registers->SR.FIELDS.D) && ((SUM & 0x0100) || ((SUM & 0x00FF) > 0x009F)) ) SUM += 0x0060;
+        if ( registers_SR_get_bit(opcode_context->registers, register_SR_Bit_D) && ((SUM & 0x0100) || ((SUM & 0x00FF) > 0x009F)) ) SUM += 0x0060;
         
         opcode_context->registers->A = SUM;
     }

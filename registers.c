@@ -39,7 +39,7 @@ registers_reset(
     the_registers->A = the_registers->X = the_registers->Y = 0x00;
     the_registers->SP = 0x00;
     the_registers->PC = 0xFFFC;
-    the_registers->SR.BYTE = 0x00;
+    the_registers->SR = 0x00;
 }
 
 //
@@ -52,14 +52,19 @@ registers_snprintf(
 )
 {
     return snprintf(p, p_len,
-        "A:$%02hhX  X:$%02hhX  Y:$%02hhX  SP:$01%02hhX  PC:$%04hX  SR:$%02hhX [N:%d V:%d B:%d D:%d I:%d Z:%d C:%d]",
+        "A:$%02hhX  X:$%02hhX  Y:$%02hhX  SP:$01%02hhX  PC:$%04hX  SR:[N:%d V:%d B:%d D:%d I:%d Z:%d C:%d]",
         the_registers->A,
         the_registers->X,
         the_registers->Y,
         the_registers->SP,
         the_registers->PC,
-        the_registers->SR.BYTE,
-        the_registers->SR.FIELDS.N, the_registers->SR.FIELDS.V, the_registers->SR.FIELDS.B, the_registers->SR.FIELDS.D, the_registers->SR.FIELDS.I, the_registers->SR.FIELDS.Z, the_registers->SR.FIELDS.C
+        registers_SR_get_bit(the_registers, register_SR_Bit_N),
+        registers_SR_get_bit(the_registers, register_SR_Bit_V),
+        registers_SR_get_bit(the_registers, register_SR_Bit_B),
+        registers_SR_get_bit(the_registers, register_SR_Bit_D),
+        registers_SR_get_bit(the_registers, register_SR_Bit_IGN),
+        registers_SR_get_bit(the_registers, register_SR_Bit_Z),
+        registers_SR_get_bit(the_registers, register_SR_Bit_C)
     );
 }
 
@@ -72,68 +77,21 @@ registers_fprintf(
 )
 {
     return fprintf(stream,
-        "A:$%02hhX  X:$%02hhX  Y:$%02hhX  SP:$01%02hhX  PC:$%04hX  SR:$%02hhX [N:%d V:%d B:%d D:%d I:%d Z:%d C:%d]\n",
+        "A:$%02hhX  X:$%02hhX  Y:$%02hhX  SP:$01%02hhX  PC:$%04hX  SR:[N:%d V:%d B:%d D:%d I:%d Z:%d C:%d]\n",
         the_registers->A,
         the_registers->X,
         the_registers->Y,
         the_registers->SP,
         the_registers->PC,
-        the_registers->SR.BYTE,
-        the_registers->SR.FIELDS.N, the_registers->SR.FIELDS.V, the_registers->SR.FIELDS.B, the_registers->SR.FIELDS.D, the_registers->SR.FIELDS.I, the_registers->SR.FIELDS.Z, the_registers->SR.FIELDS.C
+        registers_SR_get_bit(the_registers, register_SR_Bit_N),
+        registers_SR_get_bit(the_registers, register_SR_Bit_V),
+        registers_SR_get_bit(the_registers, register_SR_Bit_B),
+        registers_SR_get_bit(the_registers, register_SR_Bit_D),
+        registers_SR_get_bit(the_registers, register_SR_Bit_IGN),
+        registers_SR_get_bit(the_registers, register_SR_Bit_Z),
+        registers_SR_get_bit(the_registers, register_SR_Bit_C)
     );
 }
-
-//
-
-#ifdef REGISTERS_DID_SET_ARE_FUNCTIONS
-
-void registers_did_set_A(
-    registers_t     *the_registers,
-    int             carry_status
-)
-{
-    the_registers->SR.FIELDS.Z = ( the_registers->A == 0 );
-    the_registers->SR.FIELDS.N = ( (the_registers->A & 0x80) == 0x80 );
-    if ( carry_status < registers_Carry_ignore ) the_registers->SR.FIELDS.C = carry_status;
-}
-
-//
-
-void registers_did_set_X(
-    registers_t     *the_registers,
-    int             carry_status
-)
-{
-    the_registers->SR.FIELDS.Z = ( the_registers->X == 0 );
-    the_registers->SR.FIELDS.N = ( (the_registers->X & 0x80) == 0x80 );
-    if ( carry_status < registers_Carry_ignore ) the_registers->SR.FIELDS.C = carry_status;
-}
-
-//
-
-void registers_did_set_Y(
-    registers_t     *the_registers,
-    int             carry_status
-)
-{
-    the_registers->SR.FIELDS.Z = ( the_registers->Y == 0 );
-    the_registers->SR.FIELDS.N = ( (the_registers->Y & 0x80) == 0x80 );
-    if ( carry_status < registers_Carry_ignore ) the_registers->SR.FIELDS.C = carry_status;
-}
-
-void
-registers_status_with_value(
-    registers_t     *the_registers,
-    uint8_t         value,
-    int             carry_status
-)
-{
-    the_registers->SR.FIELDS.Z = ( value == 0 );
-    the_registers->SR.FIELDS.N = ( (value & 0x80) == 0x80 );
-    if ( carry_status < registers_Carry_ignore ) the_registers->SR.FIELDS.C = carry_status;
-}
-
-#endif
 
 //
 
@@ -148,12 +106,22 @@ main()
     registers_fprintf(&cpu_registers, stdout);
     
     cpu_registers.A = 0x00;
-    registers_did_set_A(&cpu_registers, 0);
+    registers_did_set_A(&cpu_registers, registers_Carry_clear);
     registers_fprintf(&cpu_registers, stdout);
     
     cpu_registers.X = 0xFF;
-    registers_did_set_X(&cpu_registers, 1);
+    registers_did_set_X(&cpu_registers, registers_Carry_set);
     registers_fprintf(&cpu_registers, stdout);
+    
+    uint16_t        A = 0x0040;
+    
+    registers_SR_set_bit(&cpu_registers, register_SR_Bit_C, 0);
+    
+    A = A << 1;
+    cpu_registers.A = A;
+    registers_did_set_A(&cpu_registers, (((A & 0xFF00) != 0) ? registers_Carry_set : registers_Carry_clear));
+    registers_fprintf(&cpu_registers, stdout);
+    
     
     return 0;
 }

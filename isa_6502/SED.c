@@ -5,6 +5,6 @@ __isa_6502_SED(
     isa_6502_instr_stage_t      at_stage
 )
 {
-    opcode_context->registers->SR.FIELDS.D = 1;
+    registers_SR_set_bit(opcode_context->registers, register_SR_Bit_D, 1);
     return isa_6502_instr_stage_end;
 }

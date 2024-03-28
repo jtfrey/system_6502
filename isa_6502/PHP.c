@@ -11,7 +11,7 @@ __isa_6502_PHP(
     
     switch ( opcode_context->cycle_count ) {
         case 1:
-            SR = opcode_context->registers->SR.BYTE | register_SR_Bit_B | register_SR_Bit_IGN;
+            SR = opcode_context->registers->SR | register_SR_Bit_B | register_SR_Bit_IGN;
             break;
         case 2:
             __isa_6502_push(opcode_context->registers, opcode_context->memory, SR);

@@ -124,12 +124,12 @@ __isa_6502_SBC(
         uint8_t     flag_bits = 0;
     
         ALU = ~ALU;
-        SUM = ALU + opcode_context->registers->A + opcode_context->registers->SR.FIELDS.C;
+        SUM = ALU + (uint16_t)opcode_context->registers->A + registers_SR_get_bit(opcode_context->registers, register_SR_Bit_C);
         if ( ! SUM ) flag_bits = register_SR_Bit_Z;
         if ( SUM & 0xFF00 ) flag_bits |= register_SR_Bit_C;
-        if ( ~(opcode_context->registers->A ^ ALU) & (opcode_context->registers->A ^ SUM) & 0x80 ) flag_bits |= register_SR_Bit_V;
-        opcode_context->registers->SR.BYTE = (opcode_context->registers->SR.BYTE & ~(register_SR_Bit_C | register_SR_Bit_Z | register_SR_Bit_V)) | flag_bits;
-        if ( opcode_context->registers->SR.FIELDS.D ) {
+        if ( ~((uint16_t)opcode_context->registers->A ^ ALU) & ((uint16_t)opcode_context->registers->A ^ SUM) & 0x80 ) flag_bits |= register_SR_Bit_V;
+        opcode_context->registers->SR = (opcode_context->registers->SR & ~(register_SR_Bit_C | register_SR_Bit_Z | register_SR_Bit_V)) | flag_bits;
+        if ( registers_SR_get_bit(opcode_context->registers, register_SR_Bit_D) ) {
             uint16_t        DELTA = 0;
             
             if ( SUM & 0x0010 ) DELTA = 0x0006;

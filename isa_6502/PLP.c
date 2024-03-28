@@ -19,7 +19,7 @@ __isa_6502_PLP(
             break;
         case 3:
             /* Clear B/IGN */
-            opcode_context->registers->SR.BYTE = SR;
+            opcode_context->registers->SR = SR;
             at_stage = isa_6502_instr_stage_end;
             break;
     }

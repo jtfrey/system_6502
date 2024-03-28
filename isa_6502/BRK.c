@@ -34,11 +34,11 @@ __isa_6502_BRK(
             break;
         case 3:
             /* Push SR */
-            __isa_6502_push(opcode_context->registers, opcode_context->memory, opcode_context->registers->SR.BYTE | register_SR_Bit_B);
+            __isa_6502_push(opcode_context->registers, opcode_context->memory, opcode_context->registers->SR | register_SR_Bit_B);
             break;
         case 4:
             /* Set Interrupt-disable flag */
-            opcode_context->registers->SR.FIELDS.I = 1;
+            registers_SR_set_bit(opcode_context->registers, register_SR_Bit_I, 1);
             break;
         case 5:
             /* Fetch program counter from NMI vector: */

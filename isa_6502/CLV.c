@@ -5,6 +5,6 @@ __isa_6502_CLV(
     isa_6502_instr_stage_t      at_stage
 )
 {
-    opcode_context->registers->SR.FIELDS.V = 0;
+    registers_SR_set_bit(opcode_context->registers, register_SR_Bit_V, 0);
     return isa_6502_instr_stage_end;
 }

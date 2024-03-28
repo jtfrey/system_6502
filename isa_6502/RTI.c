@@ -20,7 +20,7 @@ __isa_6502_RTI(
             ALU &= ~(register_SR_Bit_B | register_SR_Bit_IGN);
             break;
         case 3:
-            opcode_context->registers->SR.BYTE = ALU;
+            opcode_context->registers->SR = ALU;
             break;
         case 4:
             /* Prep for read: */

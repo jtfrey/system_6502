@@ -3,6 +3,7 @@
 
 #include <getopt.h>
 #include <ctype.h>
+#include <sys/time.h>
 
 //
 
@@ -48,9 +49,11 @@ const struct option cli_options[] = {
         { "reset",      no_argument,            NULL,   'r' },
         { "boot",       no_argument,            NULL,   'b' },
         { "exec",       required_argument,      NULL,   'x' },
+        { "verbose",    no_argument,            NULL,   'v' },
+        { "quiet",      no_argument,            NULL,   'q' },
         { NULL,         no_argument,            NULL,    0  }
     };
-const char *cli_options_str = "hVl:s:p:d:nrbx:";
+const char *cli_options_str = "hVl:s:p:d:nrbx:vq";
 
 //
 
@@ -83,6 +86,10 @@ usage(
         "    --boot/-b                      execute a boot from the RES vector\n"
         "    --exec/-x <mem-spec>           execute instructions in the specified\n"
         "                                   memory region\n"
+        "    --verbose/-v                   display verbose execution status\n"
+        "                                   (the default)\n"
+        "    --quiet/-q                     display as little execution status as\n"
+        "                                   possible\n"
         "\n"
         "    <addr> = $X{X..} | 0xX{X..} | 0#{#..} | #{#..} | IRQ | NMI | RES\n"
         "    <len> = $X{X..} | 0xX{X..} | 0#{#..} | #{#..} | *\n"
@@ -311,12 +318,14 @@ parse_fill_spec(
 
 int
 main(
-    int         argc,
-    char* const argv[]
+    int                         argc,
+    char* const                 argv[]
 )
 {
-    int         rc = 0, optch;
-    executor_t  *the_vm = executor_alloc_with_default_components();
+    int                         rc = 0, optch;
+    executor_t                  *the_vm = executor_alloc_with_default_components();
+    executor_stage_callback_t   exec_callback = our_executor_stage_callback;
+    isa_6502_instr_stage_t      exec_callback_event_mask = executor_stage_callback_default_stage_mask;
     
     while ( (optch = getopt_long(argc, argv, cli_options_str, cli_options, NULL)) != -1 ) {
         switch ( optch ) {
@@ -344,8 +353,8 @@ main(
                 printf("INFO:  booting from RES vector...\n");
                 executor_boot(
                         the_vm,
-                        our_executor_stage_callback,
-                        executor_stage_callback_default_stage_mask
+                        exec_callback,
+                        exec_callback_event_mask
                     );
                 break;
             
@@ -353,17 +362,34 @@ main(
                 uint16_t        addr_start, addr_end;
                 
                 if ( parse_mem_spec(optarg, &addr_start, &addr_end) ) {
+                    struct timeval  t0, t1;
+                    uint64_t        total_cycles;
+                    double          cycles_per_sec;
+                    
                     printf("INFO:  executing from $%04hX-$%04hX\n", addr_start, addr_end);
-                    executor_launch_at_address_range(
-                            the_vm,
-                            our_executor_stage_callback,
-                            executor_stage_callback_default_stage_mask,
-                            addr_start,
-                            addr_end
-                        );
+                    gettimeofday(&t0, NULL);
+                    total_cycles = executor_launch_at_address_range(
+                                            the_vm,
+                                            exec_callback,
+                                            exec_callback_event_mask,
+                                            addr_start,
+                                            addr_end
+                                        );
+                    gettimeofday(&t1, NULL);
+                    cycles_per_sec = (double)total_cycles / ((double)(t1.tv_sec - t0.tv_sec) + 1e-6 * (double)(t1.tv_usec - t0.tv_usec));
+                    printf("INFO:  %.2lg cycles per second\n", cycles_per_sec);
                 }
                 break;
             }
+            
+            case 'v':
+                exec_callback = our_executor_stage_callback;
+                exec_callback_event_mask = executor_stage_callback_default_stage_mask;
+                break;
+            case 'q':
+                exec_callback = NULL;
+                exec_callback_event_mask = 0;
+                break;
             
             case 'l': {
                 char        *file_path = NULL;
