@@ -33,3 +33,40 @@ $ cd build
 $ cmake ..
 $ make
 ```
+
+## Example
+
+The `cc65` compiler can be used to assemble the code in the [examples](./examples) directory.  The program in [multiply.s](./examples/multiply.s) can be compiled using `cl65 -cpu 6502 -t none -o multiply.bin multiply.s` and then executed at it's origin of `$2000`:
+
+```
+$ ./system_6502 -l ../examples/multiply.bin@0x2000:56 -d 0x2000:56 -q -x 0x2000:56 -s multiply.out@0x2100:0x100
+INFO:  read 56 ($0038) bytes into memory range $2000-$2037
+2000 : A2 00 A0 00 CA D0 FD 88    D0 FA A2 00 8A 9D 00 21    ...............!
+2010 : E8 D0 F9 A2 00 20 2A 20    E8 20 2A 20 E8 20 2A 20    ..... * . * . * 
+2020 : E8 20 2A 20 E8 D0 EE 4C    37 20 48 BD 00 21 0A 7D    . * ...L7 H..!.}
+2030 : 00 21 9D 00 21 68 60 00                               .!..!h`.
+INFO:  executing from $2000-$2037
+INFO:  2.5e+08 cycles per second
+INFO:  wrote 256 ($0100) bytes from memory range $2100-$21FF
+
+$ hexdump -C multiply.out
+00000000  00 03 06 09 0c 0f 12 15  18 1b 1e 21 24 27 2a 2d  |...........!$'*-|
+00000010  30 33 36 39 3c 3f 42 45  48 4b 4e 51 54 57 5a 5d  |0369<?BEHKNQTWZ]|
+00000020  60 63 66 69 6c 6f 72 75  78 7b 7e 81 84 87 8a 8d  |`cfilorux{~.....|
+00000030  90 93 96 99 9c 9f a2 a5  a8 ab ae b1 b4 b7 ba bd  |................|
+00000040  c1 c4 c7 ca cd d0 d3 d6  d9 dc df e2 e5 e8 eb ee  |................|
+00000050  f1 f4 f7 fa fd 00 03 06  09 0c 0f 12 15 18 1b 1e  |................|
+00000060  21 24 27 2a 2d 30 33 36  39 3c 3f 42 45 48 4b 4e  |!$'*-0369<?BEHKN|
+00000070  51 54 57 5a 5d 60 63 66  69 6c 6f 72 75 78 7b 7e  |QTWZ]`cfilorux{~|
+00000080  81 84 87 8a 8d 90 93 96  99 9c 9f a2 a5 a8 ab ae  |................|
+00000090  b1 b4 b7 ba bd c0 c3 c6  c9 cc cf d2 d5 d8 db de  |................|
+000000a0  e1 e4 e7 ea ed f0 f3 f6  f9 fc ff 02 05 08 0b 0e  |................|
+000000b0  11 14 17 1a 1d 20 23 26  29 2c 2f 32 35 38 3b 3e  |..... #&),/258;>|
+000000c0  41 44 47 4a 4d 50 53 56  59 5c 5f 62 65 68 6b 6e  |ADGJMPSVY\_behkn|
+000000d0  71 74 77 7a 7d 80 83 86  89 8c 8f 92 95 98 9b 9e  |qtwz}...........|
+000000e0  a1 a4 a7 aa ad b0 b3 b6  b9 bc bf c2 c5 c8 cb ce  |................|
+000000f0  d1 d4 d7 da dd e0 e3 e6  e9 ec ef f2 f5 f8 fb fe  |................|
+00000100
+```
+
+250 MHz isn't too shabby.
