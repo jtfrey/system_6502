@@ -36,10 +36,10 @@ $ make
 
 ## Example
 
-The `cc65` compiler can be used to assemble the code in the [examples](./examples) directory.  The program in [multiply.s](./examples/multiply.s) can be compiled using `cl65 -cpu 6502 -t none -o multiply.bin multiply.s` and then executed at it's origin of `$2000`:
+The `cc65` compiler can be used to assemble the code in the [examples](./examples) directory.  The program in [multiply_by_3.s](./examples/multiply_by_3.s) can be compiled using `cl65 -cpu 6502 -t none -o multiply_by_3.bin multiply_by_3.s` and then executed at it's origin of `$2000`:
 
 ```
-$ ./system_6502 -l ../examples/multiply.bin@0x2000:56 -d 0x2000:56 -q -x 0x2000:56 -s multiply.out@0x2100:0x100
+$ ./system_6502 -l ../examples/multiply_by_3.bin@0x2000:56 -d 0x2000:56 -q -x 0x2000:56 -s multiply_by_3.out@0x2100:0x100
 INFO:  read 56 ($0038) bytes into memory range $2000-$2037
 2000 : A2 00 A0 00 CA D0 FD 88    D0 FA A2 00 8A 9D 00 21    ...............!
 2010 : E8 D0 F9 A2 00 20 2A 20    E8 20 2A 20 E8 20 2A 20    ..... * . * . * 
@@ -49,7 +49,7 @@ INFO:  executing from $2000-$2037
 INFO:  2.5e+08 cycles per second
 INFO:  wrote 256 ($0100) bytes from memory range $2100-$21FF
 
-$ hexdump -C multiply.out
+$ hexdump -C multiply_by_3.out
 00000000  00 03 06 09 0c 0f 12 15  18 1b 1e 21 24 27 2a 2d  |...........!$'*-|
 00000010  30 33 36 39 3c 3f 42 45  48 4b 4e 51 54 57 5a 5d  |0369<?BEHKNQTWZ]|
 00000020  60 63 66 69 6c 6f 72 75  78 7b 7e 81 84 87 8a 8d  |`cfilorux{~.....|
