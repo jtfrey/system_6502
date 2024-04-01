@@ -36,7 +36,7 @@ __isa_6502_DEC(
                     ALU = memory_read(opcode_context->memory, ADDR);
                     break;
                 case isa_6502_addressing_zeropage_x_indexed:
-                    ADDR += opcode_context->registers->X;
+                    ADDR = (ADDR + opcode_context->registers->X) & 0x00FF;
                     break;
                 case isa_6502_addressing_absolute:
                 case isa_6502_addressing_absolute_x_indexed:
@@ -82,4 +82,50 @@ __isa_6502_DEC(
         registers_status_with_value(opcode_context->registers, ALU & 0x00FF, registers_Carry_ignore);
     }
     return at_stage;
+}
+
+int
+__isa_6502_disasm_DEC(
+    isa_6502_instr_context_t    *opcode_context,
+    char                        *buffer,
+    int                         buffer_len
+)
+{
+#ifdef ENABLE_DISASSEMBLY
+    uint8_t                     value1, value2, operand1, operand2;
+    const char                  *out_fmt = NULL;
+    
+    switch ( opcode_context->addressing_mode ) {
+    
+        case isa_6502_addressing_zeropage:
+            value1 = memory_rcache_pop(opcode_context->memory);     /* Value in */
+            value2 = memory_wcache_pop(opcode_context->memory);     /* Value out */
+            operand1 = memory_rcache_pop(opcode_context->memory);   /* Zero-page addr */
+            out_fmt = "DEC $%1$02hhX {$%5$02hhX - 1 = $%6$02hhX}";
+            break;
+        case isa_6502_addressing_zeropage_x_indexed:
+            value1 = memory_rcache_pop(opcode_context->memory);     /* Value in */
+            value2 = memory_wcache_pop(opcode_context->memory);     /* Value out */
+            operand1 = memory_rcache_pop(opcode_context->memory);   /* Zero-page addr */
+            out_fmt = "DEC $%1$02hhX,X[$%4$02hhX] {$%5$02hhX - 1 = $%6$02hhX}";
+            break;
+        case isa_6502_addressing_absolute:
+            value1 = memory_rcache_pop(opcode_context->memory);     /* Value in */
+            value2 = memory_wcache_pop(opcode_context->memory);     /* Value out */
+            operand1 = memory_rcache_pop(opcode_context->memory);   /* Target addr, high */
+            operand2 = memory_rcache_pop(opcode_context->memory);   /* Target addr, low */
+            out_fmt = "DEC $%1$02hhX%2$02hhX {$%5$02hhX - 1 = $%6$02hhX}";
+            break;
+        case isa_6502_addressing_absolute_x_indexed:
+            value1 = memory_rcache_pop(opcode_context->memory);     /* Value in */
+            value2 = memory_wcache_pop(opcode_context->memory);     /* Value out */
+            operand1 = memory_rcache_pop(opcode_context->memory);   /* Target addr, high */
+            operand2 = memory_rcache_pop(opcode_context->memory);   /* Target addr, low */
+            out_fmt = "DEC $%1$02hhX%2$02hhX,X[$%4$02hhX] {$%5$02hhX - 1 = $%6$02hhX}";
+            break;
+    }
+    return snprintf(buffer, buffer_len, out_fmt, operand1, operand2, opcode_context->registers->A, opcode_context->registers->X,  value1, value2);
+#else
+    return 0;
+#endif
 }

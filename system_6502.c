@@ -14,19 +14,25 @@ our_executor_stage_callback(
     isa_6502_opcode_t           the_opcode,
     isa_6502_addressing_t       the_addressing_mode,
     isa_6502_opcode_dispatch_t  *the_dispatch, 
-    uint64_t                    the_cycle_count
+    uint64_t                    the_cycle_count,
+    const char                  *disasm,
+    int                         disasm_len
 )
 {
     #define REGISTERS       the_executor->registers
     #define MEMORY          the_executor->memory
     #define ISA             the_executor->isa
     
-    executor_stage_callback_default(the_executor, the_stage, the_opcode, the_addressing_mode, the_dispatch, the_cycle_count);
+    executor_stage_callback_default(the_executor, the_stage, the_opcode, the_addressing_mode, the_dispatch, the_cycle_count, disasm, disasm_len);
     
     switch ( the_stage ) {
             
         case isa_6502_instr_stage_end:
             printf("[%04X] MEMORY:         ", the_stage); memory_fprintf(MEMORY, stdout, 0x0000, 0x000F);
+            break;
+        
+        case isa_6502_instr_stage_disasm:
+            if ( disasm && disasm_len ) printf("[%04X] DISASM:         %s\n", the_stage, disasm);
             break;
             
     }
@@ -325,7 +331,7 @@ main(
     int                         rc = 0, optch;
     executor_t                  *the_vm = executor_alloc_with_default_components();
     executor_stage_callback_t   exec_callback = our_executor_stage_callback;
-    isa_6502_instr_stage_t      exec_callback_event_mask = executor_stage_callback_default_stage_mask;
+    isa_6502_instr_stage_t      exec_callback_event_mask = executor_stage_callback_default_stage_mask | isa_6502_instr_stage_disasm;
     
     while ( (optch = getopt_long(argc, argv, cli_options_str, cli_options, NULL)) != -1 ) {
         switch ( optch ) {
@@ -384,7 +390,7 @@ main(
             
             case 'v':
                 exec_callback = our_executor_stage_callback;
-                exec_callback_event_mask = executor_stage_callback_default_stage_mask;
+                exec_callback_event_mask = executor_stage_callback_default_stage_mask | isa_6502_instr_stage_disasm;
                 break;
             case 'q':
                 exec_callback = NULL;

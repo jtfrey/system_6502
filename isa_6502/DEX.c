@@ -9,3 +9,17 @@ __isa_6502_DEX(
     registers_did_set_X(opcode_context->registers, registers_Carry_ignore);
     return isa_6502_instr_stage_end;
 }
+
+int
+__isa_6502_disasm_DEX(
+    isa_6502_instr_context_t    *opcode_context,
+    char                        *buffer,
+    int                         buffer_len
+)
+{
+#ifdef ENABLE_DISASSEMBLY
+    return snprintf(buffer, buffer_len, "DEX {X - 1 = $%02hhX}", opcode_context->registers->X);
+#else
+    return 0;
+#endif
+}

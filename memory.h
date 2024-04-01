@@ -19,14 +19,43 @@ typedef uint8_t memory_page[256];
  * The structure also includes an opaque pointer to an
  * internally-managed list of memory watchpoints that will
  * be notified on read/write to an address.
+ *
+ * The rcache is a ring buffer that is filled as memory_read()
+ * calls are made.  No address information is retained in the
+ * cache, so bytes may not have been contiguous.  But in the
+ * case of the 6502, each instruction has a known number of
+ * memory reads associated with it:  a JMP $XXXX uses 3 reads
+ * while a JMP ($XXXX) uses 5 reads.  In both cases, the
+ * rcache will contain those reads in sequence.  A runtime
+ * disassembler (with knowledge of what opcode was executed)
+ * can check the rcache for the operand(s).
+ *
+ * The same principle works w.r.t. wcache and the output from
+ * an instruction.
  */
 typedef struct memory {
     const void          *watchpoints;
+    
+#ifdef ENABLE_MEMORY_CACHE
+    uint8_t             rcache_idx, wcache_idx;
+    uint8_t             rcache[8], wcache[8];
+#endif
+    
     union {
         memory_page     PAGES[256];
         uint8_t         BYTES[256 * 256];
     } RAM;
 } memory_t;
+
+#ifdef ENABLE_MEMORY_CACHE
+#   define memory_rcache_push(M, B)  (M)->rcache[M->rcache_idx++ % 8] = (B)
+#   define memory_rcache_peek(M)     (M)->rcache[M->rcache_idx % 8]
+#   define memory_rcache_pop(M)      (M)->rcache[--M->rcache_idx % 8]
+
+#   define memory_wcache_push(M, B)  (M)->wcache[M->wcache_idx++ % 8] = (B)
+#   define memory_wcache_peek(M)     (M)->wcache[M->wcache_idx % 8]
+#   define memory_wcache_pop(M)      (M)->wcache[--M->wcache_idx % 8]
+#endif
 
 /*
  * @defined MEMORY_ADDR_NMI_VECTOR

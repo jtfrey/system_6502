@@ -57,3 +57,35 @@ __isa_6502_JMP(
     }
     return at_stage;
 }
+
+int
+__isa_6502_disasm_JMP(
+    isa_6502_instr_context_t    *opcode_context,
+    char                        *buffer,
+    int                         buffer_len
+)
+{
+#ifdef ENABLE_DISASSEMBLY
+    uint8_t                     operand1, operand2, operand3, operand4;
+    const char                  *out_fmt = NULL;
+    
+    switch ( opcode_context->addressing_mode ) {
+    
+        case isa_6502_addressing_absolute:
+            operand1 = memory_rcache_pop(opcode_context->memory);   /* Target addr, high */
+            operand2 = memory_rcache_pop(opcode_context->memory);   /* Target addr, low */
+            out_fmt = "JMP $%1$02hhX%2$02hhX";
+            break;
+        case isa_6502_addressing_indirect:
+            operand1 = memory_rcache_pop(opcode_context->memory);   /* Target addr, high */
+            operand2 = memory_rcache_pop(opcode_context->memory);   /* Target addr, low */
+            operand3 = memory_rcache_pop(opcode_context->memory);   /* Indirect addr, high */
+            operand4 = memory_rcache_pop(opcode_context->memory);   /* Indirect addr, low */
+            out_fmt = "JMP ($%3$02hhX%4$02hhX[$%1$02hhX%2$02hhX])";
+            break;
+    }
+    return snprintf(buffer, buffer_len, out_fmt, operand1, operand2, operand3, operand4);
+#else
+    return 0;
+#endif
+}

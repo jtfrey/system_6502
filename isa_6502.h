@@ -108,8 +108,9 @@ enum {
     isa_6502_instr_stage_pre_next_cycle = 1 << 6,
     isa_6502_instr_stage_next_cycle = 1 << 7,
     isa_6502_instr_stage_end = 1 << 8,
-    isa_6502_instr_stage_execution_complete = 1 << 9,
-    isa_6502_instr_stage_illegal_instruction = 1 << 10,
+    isa_6502_instr_stage_disasm = 1 << 9,
+    isa_6502_instr_stage_execution_complete = 1 << 10,
+    isa_6502_instr_stage_illegal_instruction = 1 << 32,
     /**/
     isa_6502_instr_stage_all = 0xFFFFFFFF
 };
@@ -122,7 +123,7 @@ enum {
 typedef uint32_t isa_6502_instr_stage_t;
 
 /*
- * @typedef isa_6502_instr_callback_t
+ * @typedef isa_6502_instr_exec_callback_t
  *
  * Type of the function that handles execution stages of a
  * 6502 opcode.  The function receives a pointer to the opcode
@@ -131,7 +132,17 @@ typedef uint32_t isa_6502_instr_stage_t;
  * The function must return the next stage value for the
  * processing of the instruction.
  */
-typedef isa_6502_instr_stage_t (*isa_6502_instr_callback_t)(isa_6502_instr_context_t *opcode_context, isa_6502_instr_stage_t at_stage);
+typedef isa_6502_instr_stage_t (*isa_6502_instr_exec_callback_t)(isa_6502_instr_context_t *opcode_context, isa_6502_instr_stage_t at_stage);
+
+/*
+ * @typedef isa_6502_instr_disasm_callback_t
+ *
+ * Type of the function that handles disassembly of an executed
+ * instruction.  This only works if the memory system was compiled
+ * with read/write caches so that operands and outputs can be
+ * retrieved quickly and easily.
+ */
+typedef int (*isa_6502_instr_disasm_callback_t)(isa_6502_instr_context_t *opcode_context, char *buffer, int buffer_len);
 
 /*
  * @typedef isa_6502_opcode_dispatch_t
@@ -141,9 +152,10 @@ typedef isa_6502_instr_stage_t (*isa_6502_instr_callback_t)(isa_6502_instr_conte
  * question.
  */
 typedef struct isa_6502_opcode_dispatch {
-    isa_6502_instr_callback_t   callback_fn;
-    const char                  *description;
-    isa_6502_addressing_t       addressing_mode;
+    isa_6502_instr_exec_callback_t      exec_fn;
+    isa_6502_instr_disasm_callback_t    disasm_fn;
+    const char                          *description;
+    isa_6502_addressing_t               addressing_mode;
 } isa_6502_opcode_dispatch_t;
 
 /*

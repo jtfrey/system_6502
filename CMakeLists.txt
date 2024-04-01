@@ -13,16 +13,29 @@ option(ENABLE_MEMORY_TEST "Compile the memory test program" OFF)
 option(ENABLE_REGISTERS_TEST "Compile the registers test program" OFF)
 option(ENABLE_ISA_6502_TEST "Compile the ISA 6502 test program" OFF)
 
+option(ENABLE_MEMORY_CACHE "Memory controller caches last 8 bytes read/written" ON)
+option(ENABLE_DISASSEMBLY "Include callbacks to disassemble executed instructions" ON)
+
+#
+# For disassembly to work, the memory caching must be enabled:
+#
+if (ENABLE_DISASSEMBLY AND NOT ENABLE_MEMORY_CACHE)
+    message(WARNING "Disassembly enabled but memory cache is not; forcing memory cache ON")
+    set(ENABLE_MEMORY_CACHE ON)
+endif()
+
 #
 # For the sake of 16-bit processing we need to compile according
 # to the endian nature of the system.
 #
-include (TestBigEndian)
-test_big_endian(IS_BIG_ENDIAN)
-if (NOT IS_BIG_ENDIAN)
-    set(ISA_6502_HOST_IS_LE 1)
-else ()
-    set(ISA_6502_HOST_IS_LE 0)
+if (NOT DEFINED ISA_6502_HOST_IS_LE)
+    include (TestBigEndian)
+    test_big_endian(IS_BIG_ENDIAN)
+    if (IS_BIG_ENDIAN)
+        set(ISA_6502_HOST_IS_LE OFF CACHE BOOL "Compilation target is little-endian")
+    else ()
+        set(ISA_6502_HOST_IS_LE ON CACHE BOOL "Compilation target is little-endian")
+    endif()
 endif()
 
 #

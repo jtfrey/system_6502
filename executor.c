@@ -101,7 +101,9 @@ executor_stage_callback_default(
     isa_6502_opcode_t           the_opcode,
     isa_6502_addressing_t       the_addressing_mode,
     isa_6502_opcode_dispatch_t  *the_dispatch, 
-    uint64_t                    the_cycle_count
+    uint64_t                    the_cycle_count,
+    const char                  *disasm,
+    int                         disasm_len
 )
 {
     #define REGISTERS           the_executor->registers
@@ -166,17 +168,20 @@ executor_launch_at_address_range(
     #define MEMORY              the_executor->memory
     #define ISA                 the_executor->isa
     
+#ifdef ENABLE_DISASSEMBLY
+    char                        disasm_buffer[64];
+#endif
     uint64_t                    total_cycles = 0;
     uint32_t                    PC_end = end_addr;
     
     /* Load the starting address into the PC */
     if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_pre_load_PC) )
         callback_fn(the_executor, isa_6502_instr_stage_pre_load_PC,
-                        isa_6502_opcode_null(), isa_6502_addressing_undefined, NULL, 0);
+                        isa_6502_opcode_null(), isa_6502_addressing_undefined, NULL, 0, NULL, 0);
     REGISTERS->PC = start_addr;
     if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_post_load_PC) )
         callback_fn(the_executor, isa_6502_instr_stage_post_load_PC,
-                        isa_6502_opcode_null(), isa_6502_addressing_undefined, NULL, 0);
+                        isa_6502_opcode_null(), isa_6502_addressing_undefined, NULL, 0, NULL, 0);
     
     while ( REGISTERS->PC < PC_end ) {
         isa_6502_instr_context_t    instr_context = {
@@ -191,27 +196,27 @@ executor_launch_at_address_range(
         /* Read the opcode */
         if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_pre_fetch_opcode) )
             callback_fn(the_executor, isa_6502_instr_stage_pre_fetch_opcode,
-                            isa_6502_opcode_null(), isa_6502_addressing_undefined, NULL, 0);
+                            isa_6502_opcode_null(), isa_6502_addressing_undefined, NULL, 0, NULL, 0);
         instr_context.opcode.BYTE = memory_read(MEMORY, REGISTERS->PC++);
         instr_context.cycle_count++, total_cycles++;
         if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_post_fetch_opcode) )
             callback_fn(the_executor, isa_6502_instr_stage_post_fetch_opcode,
-                            instr_context.opcode, isa_6502_addressing_undefined, NULL, instr_context.cycle_count);
+                            instr_context.opcode, isa_6502_addressing_undefined, NULL, instr_context.cycle_count, NULL, 0);
         
         /* Decode the opcode: */
         if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_pre_decode_opcode) )
             callback_fn(the_executor, isa_6502_instr_stage_pre_decode_opcode,
-                            instr_context.opcode, isa_6502_addressing_undefined, NULL, instr_context.cycle_count);
+                            instr_context.opcode, isa_6502_addressing_undefined, NULL, instr_context.cycle_count, NULL, 0);
         dispatch = isa_6502_table_lookup_dispatch(ISA, opcode_ptr);
         if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_post_decode_opcode) )
             callback_fn(the_executor, isa_6502_instr_stage_post_decode_opcode,
-                            instr_context.opcode, dispatch->addressing_mode, dispatch, instr_context.cycle_count);
+                            instr_context.opcode, dispatch->addressing_mode, dispatch, instr_context.cycle_count, NULL, 0);
         
         /* Valid instruction? */
         if ( ! dispatch || (dispatch->addressing_mode == isa_6502_addressing_undefined) ) {
             if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_illegal_instruction) )
                 callback_fn(the_executor, isa_6502_instr_stage_illegal_instruction,
-                                instr_context.opcode, dispatch->addressing_mode, dispatch, instr_context.cycle_count);
+                                instr_context.opcode, dispatch->addressing_mode, dispatch, instr_context.cycle_count, NULL, 0);
             break;
         }
         
@@ -222,21 +227,31 @@ executor_launch_at_address_range(
         do {
             if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_pre_next_cycle) )
                 callback_fn(the_executor, isa_6502_instr_stage_pre_next_cycle,
-                                instr_context.opcode, dispatch->addressing_mode, dispatch, instr_context.cycle_count);
-            next_stage = dispatch->callback_fn(&instr_context, isa_6502_instr_stage_next_cycle);
+                                instr_context.opcode, dispatch->addressing_mode, dispatch, instr_context.cycle_count, NULL, 0);
+            next_stage = dispatch->exec_fn(&instr_context, isa_6502_instr_stage_next_cycle);
             instr_context.cycle_count++, total_cycles++;
             if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_next_cycle) )
                 callback_fn(the_executor, isa_6502_instr_stage_next_cycle,
-                                instr_context.opcode, dispatch->addressing_mode, dispatch, instr_context.cycle_count);
+                                instr_context.opcode, dispatch->addressing_mode, dispatch, instr_context.cycle_count, NULL, 0);
         } while ( next_stage != isa_6502_instr_stage_end);
+
+#ifdef ENABLE_DISASSEMBLY
+        if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_disasm) && dispatch->disasm_fn) {
+            int     disasm_len = dispatch->disasm_fn(&instr_context, disasm_buffer, sizeof(disasm_buffer));
+            
+            callback_fn(the_executor, isa_6502_instr_stage_disasm,
+                        instr_context.opcode, dispatch->addressing_mode, dispatch, instr_context.cycle_count,
+                        disasm_buffer, disasm_len);
+        }
+#endif
         
         if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_end) )
             callback_fn(the_executor, isa_6502_instr_stage_end,
-                            instr_context.opcode, dispatch->addressing_mode, dispatch, instr_context.cycle_count);
+                            instr_context.opcode, dispatch->addressing_mode, dispatch, instr_context.cycle_count, NULL, 0);
     }        
     if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_execution_complete) )
         callback_fn(the_executor, isa_6502_instr_stage_execution_complete,
-                        isa_6502_opcode_null(), isa_6502_addressing_undefined, NULL, total_cycles);
+                        isa_6502_opcode_null(), isa_6502_addressing_undefined, NULL, total_cycles, NULL, 0);
     return total_cycles;
     
     #undef REGISTERS
@@ -253,21 +268,24 @@ executor_boot(
     isa_6502_instr_stage_t      callback_stage_mask
 )
 {
-    #define REGISTERS       the_executor->registers
-    #define MEMORY          the_executor->memory
-    #define ISA             the_executor->isa
+    #define REGISTERS           the_executor->registers
+    #define MEMORY              the_executor->memory
+    #define ISA                 the_executor->isa
     
-    uint64_t                total_cycles = 0;
-    uint32_t                PC_end = 0xFFFF;
+#ifdef ENABLE_DISASSEMBLY
+    char                        disasm_buffer[64];
+#endif
+    uint64_t                    total_cycles = 0;
+    uint32_t                    PC_end = 0xFFFF;
     
     /* Load the value of the RESET vector into the PC: */
     if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_pre_load_PC) )
         callback_fn(the_executor, isa_6502_instr_stage_pre_load_PC,
-                        isa_6502_opcode_null(), isa_6502_addressing_undefined, NULL, 0);
+                        isa_6502_opcode_null(), isa_6502_addressing_undefined, NULL, 0, NULL, 0);
     REGISTERS->PC = (MEMORY->RAM.BYTES[MEMORY_ADDR_RES_VECTOR + 1] << 8) | MEMORY->RAM.BYTES[MEMORY_ADDR_RES_VECTOR];
     if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_post_load_PC) )
         callback_fn(the_executor, isa_6502_instr_stage_post_load_PC,
-                        isa_6502_opcode_null(), isa_6502_addressing_undefined, NULL, 0);
+                        isa_6502_opcode_null(), isa_6502_addressing_undefined, NULL, 0, NULL, 0);
     
     while ( REGISTERS->PC < PC_end ) {
         isa_6502_instr_context_t    instr_context = {
@@ -282,27 +300,27 @@ executor_boot(
         /* Read the opcode */
         if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_pre_fetch_opcode) )
             callback_fn(the_executor, isa_6502_instr_stage_pre_fetch_opcode,
-                            isa_6502_opcode_null(), isa_6502_addressing_undefined, NULL, 0);
+                            isa_6502_opcode_null(), isa_6502_addressing_undefined, NULL, 0, NULL, 0);
         instr_context.opcode.BYTE = memory_read(MEMORY, REGISTERS->PC++);
         instr_context.cycle_count++, total_cycles++;
         if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_post_fetch_opcode) )
             callback_fn(the_executor, isa_6502_instr_stage_post_fetch_opcode,
-                            instr_context.opcode, isa_6502_addressing_undefined, NULL, instr_context.cycle_count);
+                            instr_context.opcode, isa_6502_addressing_undefined, NULL, instr_context.cycle_count, NULL, 0);
                             
         /* Decode the opcode: */
         if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_pre_decode_opcode) )
             callback_fn(the_executor, isa_6502_instr_stage_pre_decode_opcode,
-                            instr_context.opcode, isa_6502_addressing_undefined, NULL, instr_context.cycle_count);
+                            instr_context.opcode, isa_6502_addressing_undefined, NULL, instr_context.cycle_count, NULL, 0);
         dispatch = isa_6502_table_lookup_dispatch(ISA, opcode_ptr);
         if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_post_decode_opcode) )
             callback_fn(the_executor, isa_6502_instr_stage_post_decode_opcode,
-                            instr_context.opcode, dispatch->addressing_mode, dispatch, instr_context.cycle_count);
+                            instr_context.opcode, dispatch->addressing_mode, dispatch, instr_context.cycle_count, NULL, 0);
         
         /* Valid instruction? */
         if ( ! dispatch || (dispatch->addressing_mode == isa_6502_addressing_undefined) ) {
             if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_illegal_instruction) )
                 callback_fn(the_executor, isa_6502_instr_stage_illegal_instruction,
-                                instr_context.opcode, dispatch->addressing_mode, dispatch, instr_context.cycle_count);
+                                instr_context.opcode, dispatch->addressing_mode, dispatch, instr_context.cycle_count, NULL, 0);
             break;
         }
         
@@ -313,21 +331,31 @@ executor_boot(
         do {
             if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_pre_next_cycle) )
                 callback_fn(the_executor, isa_6502_instr_stage_pre_next_cycle,
-                                instr_context.opcode, dispatch->addressing_mode, dispatch, instr_context.cycle_count);
-            next_stage = dispatch->callback_fn(&instr_context, isa_6502_instr_stage_next_cycle);
+                                instr_context.opcode, dispatch->addressing_mode, dispatch, instr_context.cycle_count, NULL, 0);
+            next_stage = dispatch->exec_fn(&instr_context, isa_6502_instr_stage_next_cycle);
             instr_context.cycle_count++, total_cycles++;
             if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_next_cycle) )
                 callback_fn(the_executor, isa_6502_instr_stage_next_cycle,
-                                instr_context.opcode, dispatch->addressing_mode, dispatch, instr_context.cycle_count);
+                                instr_context.opcode, dispatch->addressing_mode, dispatch, instr_context.cycle_count, NULL, 0);
         } while ( next_stage != isa_6502_instr_stage_end);
-        
+
+#ifdef ENABLE_DISASSEMBLY
+        if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_disasm) && dispatch->disasm_fn) {
+            int     disasm_len = dispatch->disasm_fn(&instr_context, disasm_buffer, sizeof(disasm_buffer));
+            
+            callback_fn(the_executor, isa_6502_instr_stage_disasm,
+                        instr_context.opcode, dispatch->addressing_mode, dispatch, instr_context.cycle_count,
+                        disasm_buffer, disasm_len);
+        }
+#endif
+
         if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_end) )
             callback_fn(the_executor, isa_6502_instr_stage_end,
-                            instr_context.opcode, dispatch->addressing_mode, dispatch, instr_context.cycle_count);
+                            instr_context.opcode, dispatch->addressing_mode, dispatch, instr_context.cycle_count, NULL, 0);
     }        
     if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_execution_complete) )
         callback_fn(the_executor, isa_6502_instr_stage_execution_complete,
-                        isa_6502_opcode_null(), isa_6502_addressing_undefined, NULL, total_cycles);
+                        isa_6502_opcode_null(), isa_6502_addressing_undefined, NULL, total_cycles, NULL, 0);
     return total_cycles;
     
     #undef REGISTERS

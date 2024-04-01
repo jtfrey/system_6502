@@ -25,3 +25,17 @@ __isa_6502_PLP(
     }
     return at_stage;
 }
+
+int
+__isa_6502_disasm_PLP(
+    isa_6502_instr_context_t    *opcode_context,
+    char                        *buffer,
+    int                         buffer_len
+)
+{
+#ifdef ENABLE_DISASSEMBLY
+    return snprintf(buffer, buffer_len, "PLP");
+#else
+    return 0;
+#endif
+}

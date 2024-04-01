@@ -37,3 +37,19 @@ __isa_6502_BMI(
     }
     return at_stage;
 }
+
+int
+__isa_6502_disasm_BMI(
+    isa_6502_instr_context_t    *opcode_context,
+    char                        *buffer,
+    int                         buffer_len
+)
+{
+#ifdef ENABLE_DISASSEMBLY
+    uint8_t                     operand = memory_rcache_pop(opcode_context->memory);
+    
+    return snprintf(buffer, buffer_len, "BMI %hhd", *((int8_t*)&operand));
+#else
+    return 0;
+#endif
+}

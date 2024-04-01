@@ -412,7 +412,11 @@ memory_read(
             wp = wp->child;
         }
     }
+#ifdef ENABLE_MEMORY_CACHE
+    return memory_rcache_push(the_memory, the_memory->RAM.BYTES[addr]);
+#else
     return the_memory->RAM.BYTES[addr];
+#endif
 }
 
 //
@@ -435,7 +439,11 @@ memory_write(
             wp = wp->child;
         }
     }
+#ifdef ENABLE_MEMORY_CACHE
+    memory_wcache_push(the_memory, the_memory->RAM.BYTES[addr] = value);
+#else
     the_memory->RAM.BYTES[addr] = value;
+#endif
 }
 
 //

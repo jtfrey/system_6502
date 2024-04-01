@@ -61,3 +61,17 @@ __isa_6502_BRK(
     }
     return at_stage;
 }
+
+int
+__isa_6502_disasm_BRK(
+    isa_6502_instr_context_t    *opcode_context,
+    char                        *buffer,
+    int                         buffer_len
+)
+{
+#ifdef ENABLE_DISASSEMBLY
+    return snprintf(buffer, buffer_len, "BRK (=> $%04hX)", opcode_context->registers->PC);
+#else
+    return 0;
+#endif
+}

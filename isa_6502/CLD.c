@@ -8,3 +8,17 @@ __isa_6502_CLD(
     registers_SR_set_bit(opcode_context->registers, register_SR_Bit_D, 0);
     return isa_6502_instr_stage_end;
 }
+
+int
+__isa_6502_disasm_CLD(
+    isa_6502_instr_context_t    *opcode_context,
+    char                        *buffer,
+    int                         buffer_len
+)
+{
+#ifdef ENABLE_DISASSEMBLY
+    return snprintf(buffer, buffer_len, "CLD");
+#else
+    return 0;
+#endif
+}

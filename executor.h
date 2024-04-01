@@ -6,6 +6,7 @@
 #include "registers.h"
 #include "memory.h"
 #include "isa_6502.h"
+    
 
 /*
  * @typedef executor_t
@@ -71,7 +72,7 @@ void executor_reset(executor_t *the_executor);
  * isa_6502_instr_stage_execution_complete stage, the_cycle_count is the total cycles the
  * virtual machine has executed.
  */
-typedef void (*executor_stage_callback_t)(executor_t *the_executor, isa_6502_instr_stage_t the_stage, isa_6502_opcode_t the_opcode, isa_6502_addressing_t the_addressing_mode, isa_6502_opcode_dispatch_t *the_dispatch, uint64_t the_cycle_count);
+typedef void (*executor_stage_callback_t)(executor_t *the_executor, isa_6502_instr_stage_t the_stage, isa_6502_opcode_t the_opcode, isa_6502_addressing_t the_addressing_mode, isa_6502_opcode_dispatch_t *the_dispatch, uint64_t the_cycle_count, const char *disasm, int disasm_len);
 
 /*
  * @function executor_stage_callback_default
@@ -81,7 +82,7 @@ typedef void (*executor_stage_callback_t)(executor_t *the_executor, isa_6502_ins
  * useful summary is output after the fetch, decode, execution cycles, and completion of
  * the processing pipeline.
  */
-void executor_stage_callback_default(executor_t *the_executor, isa_6502_instr_stage_t the_stage, isa_6502_opcode_t the_opcode, isa_6502_addressing_t the_addressing_mode, isa_6502_opcode_dispatch_t *the_dispatch, uint64_t the_cycle_count);
+void executor_stage_callback_default(executor_t *the_executor, isa_6502_instr_stage_t the_stage, isa_6502_opcode_t the_opcode, isa_6502_addressing_t the_addressing_mode, isa_6502_opcode_dispatch_t *the_dispatch, uint64_t the_cycle_count, const char *disasm, int disasm_len);
 
 /*
  * @defined executor_stage_callback_default_stage_mask

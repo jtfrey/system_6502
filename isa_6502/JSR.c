@@ -55,3 +55,28 @@ __isa_6502_JSR(
     }
     return at_stage;
 }
+
+int
+__isa_6502_disasm_JSR(
+    isa_6502_instr_context_t    *opcode_context,
+    char                        *buffer,
+    int                         buffer_len
+)
+{
+#ifdef ENABLE_DISASSEMBLY
+    uint8_t                     operand1, operand2, operand3, operand4;
+    const char                  *out_fmt = NULL;
+    
+    switch ( opcode_context->addressing_mode ) {
+    
+        case isa_6502_addressing_absolute:
+            operand1 = memory_rcache_pop(opcode_context->memory);   /* Target addr, high */
+            operand2 = memory_rcache_pop(opcode_context->memory);   /* Target addr, low */
+            out_fmt = "JSR $%1$02hhX%2$02hhX";
+            break;
+    }
+    return snprintf(buffer, buffer_len, out_fmt, operand1, operand2, operand3, operand4);
+#else
+    return 0;
+#endif
+}

@@ -39,7 +39,7 @@ __isa_6502_LDX(
                     at_stage = isa_6502_instr_stage_end;
                     break;
                 case isa_6502_addressing_zeropage_y_indexed:
-                    ADDR += opcode_context->registers->Y;
+                    ADDR = (ADDR + opcode_context->registers->Y) & 0x00FF;
                     break;
                 case isa_6502_addressing_absolute:
                 case isa_6502_addressing_absolute_y_indexed:
@@ -80,4 +80,50 @@ __isa_6502_LDX(
         registers_did_set_X(opcode_context->registers, registers_Carry_ignore);
     }
     return at_stage;
+}
+
+int
+__isa_6502_disasm_LDX(
+    isa_6502_instr_context_t    *opcode_context,
+    char                        *buffer,
+    int                         buffer_len
+)
+{
+#ifdef ENABLE_DISASSEMBLY
+    uint8_t                     value, operand1, operand2;
+    const char                  *out_fmt = NULL;
+    
+    switch ( opcode_context->addressing_mode ) {
+    
+        case isa_6502_addressing_immediate:
+            value = memory_rcache_pop(opcode_context->memory);      /* Value */
+            out_fmt = "LDX #$%3$02hhX {X = $%4$02hhX}";
+            break;
+        case isa_6502_addressing_zeropage:
+            value = memory_rcache_pop(opcode_context->memory);      /* Value */
+            operand1 = memory_rcache_pop(opcode_context->memory);   /* Zero-page addr */
+            out_fmt = "LDX $%1$02hhX {X = $%4$02hhX}";
+            break;
+        case isa_6502_addressing_zeropage_y_indexed:
+            value = memory_rcache_pop(opcode_context->memory);      /* Value */
+            operand1 = memory_rcache_pop(opcode_context->memory);   /* Zero-page addr */
+            out_fmt = "LDX $%1$02hhX,Y[$%3$02hhX] {X = $%4$02hhX}";
+            break;
+        case isa_6502_addressing_absolute:
+            value = memory_rcache_pop(opcode_context->memory);      /* Value */
+            operand1 = memory_rcache_pop(opcode_context->memory);   /* Target addr, high */
+            operand2 = memory_rcache_pop(opcode_context->memory);   /* Target addr, low */
+            out_fmt = "LDX $%1$02hhX%2$02hhX {X = $%4$02hhX}";
+            break;
+        case isa_6502_addressing_absolute_y_indexed:
+            value = memory_rcache_pop(opcode_context->memory);      /* Value */
+            operand1 = memory_rcache_pop(opcode_context->memory);   /* Target addr, high */
+            operand2 = memory_rcache_pop(opcode_context->memory);   /* Target addr, low */
+            out_fmt = "LDX $%1$02hhX%2$02hhX,Y[$%3$02hhX] {X = $%4$02hhX}";
+            break;
+    }
+    return snprintf(buffer, buffer_len, out_fmt, operand1, operand2, opcode_context->registers->Y, value);
+#else
+    return 0;
+#endif
 }

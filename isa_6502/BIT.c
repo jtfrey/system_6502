@@ -45,10 +45,49 @@ __isa_6502_BIT(
             break;
     }
     if ( at_stage == isa_6502_instr_stage_end) {
-        uint8_t     flag_bits = (opcode_context->registers->A & ALU);
+        uint8_t     A_and_M = (opcode_context->registers->A & ALU);
         
-        if ( opcode_context->registers->A == 0 ) flag_bits |= register_SR_Bit_Z;
-        opcode_context->registers->SR = (opcode_context->registers->SR & ~(register_SR_Bit_V | register_SR_Bit_Z | register_SR_Bit_N)) | flag_bits;
+        opcode_context->registers->SR &= ~(register_SR_Bit_V | register_SR_Bit_Z | register_SR_Bit_N);
+        opcode_context->registers->SR |= (ALU & 0xC0) | (A_and_M ? 0 : register_SR_Bit_Z);
     }
     return at_stage;
+}
+
+int
+__isa_6502_disasm_BIT(
+    isa_6502_instr_context_t    *opcode_context,
+    char                        *buffer,
+    int                         buffer_len
+)
+{
+#ifdef ENABLE_DISASSEMBLY
+    uint8_t                     value, operand1, operand2;
+    const char                  *out_fmt = NULL;
+    
+    switch ( opcode_context->addressing_mode ) {
+    
+        case isa_6502_addressing_zeropage:
+            value = memory_rcache_pop(opcode_context->memory);      /* Value */
+            operand1 = memory_rcache_pop(opcode_context->memory);   /* Zero-page addr */
+            return snprintf(buffer, buffer_len, "BIT $%02hhX {$%02hhX TEST $%02hhX => %hhu%hhu----%hhu-}",
+                        operand1, opcode_context->registers->A, value,
+                        registers_SR_get_bit(opcode_context->registers, register_SR_Bit_N),
+                        registers_SR_get_bit(opcode_context->registers, register_SR_Bit_V),
+                        registers_SR_get_bit(opcode_context->registers, register_SR_Bit_Z));
+            break;
+        case isa_6502_addressing_absolute:
+            value = memory_rcache_pop(opcode_context->memory);      /* Value */
+            operand1 = memory_rcache_pop(opcode_context->memory);   /* Target addr, high */
+            operand2 = memory_rcache_pop(opcode_context->memory);   /* Target addr, low */
+            return snprintf(buffer, buffer_len, "BIT $%02hhX%02hhX {$%02hhX TEST $%02hhX => %hhu%hhu----%hhu-}",
+                        operand1, operand2, opcode_context->registers->A, value,
+                        registers_SR_get_bit(opcode_context->registers, register_SR_Bit_N),
+                        registers_SR_get_bit(opcode_context->registers, register_SR_Bit_V),
+                        registers_SR_get_bit(opcode_context->registers, register_SR_Bit_Z));
+            break;
+    }
+    return 0;
+#else
+    return 0;
+#endif
 }

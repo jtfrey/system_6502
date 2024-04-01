@@ -20,5 +20,7 @@
 #endif
 
 #cmakedefine ISA_6502_HOST_IS_LE
+#cmakedefine ENABLE_MEMORY_CACHE
+#cmakedefine ENABLE_DISASSEMBLY
 
 #endif /* __SYSTEM_6502_CONFIG_H__ */
