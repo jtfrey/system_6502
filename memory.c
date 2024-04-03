@@ -3,6 +3,8 @@
 
 #include <ctype.h>
 
+#ifdef ENABLE_MEMORY_WATCHPOINTS
+
 typedef struct memory_watchpoint {
     memory_t                        *source;
     uint16_t                        addr;
@@ -42,6 +44,26 @@ __memory_watchpoint_free(
 {
     free((void*)wp);
 }
+
+//
+
+void
+__memory_watchpoint_recursive_free(
+    memory_watchpoint_t *wp
+)
+{
+    memory_watchpoint_t *node = wp->child, *next;
+    
+    while ( node ) {
+        next = node->child;
+        __memory_watchpoint_free(next);
+    }
+    
+    if ( wp->left ) __memory_watchpoint_recursive_free(wp->left);
+    if ( wp->right ) __memory_watchpoint_recursive_free(wp->right);
+    
+    __memory_watchpoint_free(wp);
+}   
 
 //
 
@@ -160,6 +182,8 @@ __memory_watchpoint_register(
     return new_wp;
 }
 
+#endif
+
 //
 
 memory_t*
@@ -177,7 +201,9 @@ memory_init(
 {
     if ( ! the_memory ) the_memory = memory_alloc();
     if ( the_memory ) {
+#ifdef ENABLE_MEMORY_WATCHPOINTS
         the_memory->watchpoints = NULL;
+#endif
     }
     return the_memory;
 }
@@ -189,6 +215,9 @@ memory_free(
     memory_t    *the_memory
 )
 {
+#ifdef ENABLE_MEMORY_WATCHPOINTS
+    if ( the_memory->watchpoints ) __memory_watchpoint_recursive_free((memory_watchpoint_t*)the_memory->watchpoints);
+#endif
     free((void*)the_memory);
 }
 
@@ -204,6 +233,8 @@ memory_reset(
 }
 
 //
+
+#ifdef ENABLE_MEMORY_WATCHPOINTS
 
 memory_watchpoint_ref
 memory_watchpoint_register(
@@ -393,6 +424,8 @@ memory_watchpoint_unregister(
     __memory_watchpoint_free(the_watchpoint);
 }
 
+#endif
+
 //
 
 uint8_t
@@ -401,6 +434,7 @@ memory_read(
     uint16_t    addr
 )
 {
+#ifdef ENABLE_MEMORY_WATCHPOINTS
     if ( the_memory->watchpoints ) {
         memory_watchpoint_t *wp = __memory_watchpoint_find_addr(
                                         (memory_watchpoint_t*)the_memory->watchpoints,
@@ -412,6 +446,7 @@ memory_read(
             wp = wp->child;
         }
     }
+#endif
 #ifdef ENABLE_MEMORY_CACHE
     return memory_rcache_push(the_memory, the_memory->RAM.BYTES[addr]);
 #else
@@ -428,6 +463,7 @@ memory_write(
     uint8_t     value
 )
 {
+#ifdef ENABLE_MEMORY_WATCHPOINTS
     if ( the_memory->watchpoints ) {
         memory_watchpoint_t *wp = __memory_watchpoint_find_addr(
                                         (memory_watchpoint_t*)the_memory->watchpoints,
@@ -439,6 +475,7 @@ memory_write(
             wp = wp->child;
         }
     }
+#endif
 #ifdef ENABLE_MEMORY_CACHE
     memory_wcache_push(the_memory, the_memory->RAM.BYTES[addr] = value);
 #else
@@ -555,6 +592,8 @@ memory_fprintf(
 
 #ifdef ENABLE_MEMORY_TEST
 
+
+#ifdef ENABLE_MEMORY_WATCHPOINTS
 void
 observe(
     memory_t                    *the_memory,
@@ -568,6 +607,7 @@ observe(
         addr
     );
 }
+#endif
 
 int
 main()
@@ -575,8 +615,11 @@ main()
     memory_t    the_memory;
     
     memory_init(&the_memory);
+
+#ifdef ENABLE_MEMORY_WATCHPOINTS
     memory_watchpoint_register(&the_memory, 0x1500, memory_watchpoint_event_all, observe, NULL);
-    
+#endif
+
     printf("Read $1500 = $%02hhX\n", memory_read(&the_memory, 0x1500));
     memory_write(&the_memory, 0x1500, 0xFF);
     printf("Read $1500 = $%02hhX\n", memory_read(&the_memory, 0x1500));

@@ -34,17 +34,19 @@ typedef uint8_t memory_page[256];
  * an instruction.
  */
 typedef struct memory {
-    const void          *watchpoints;
-    
+    union {
+        memory_page     PAGES[256];
+        uint8_t         BYTES[256 * 256];
+    } RAM;
+
 #ifdef ENABLE_MEMORY_CACHE
     uint8_t             rcache_idx, wcache_idx;
     uint8_t             rcache[8], wcache[8];
 #endif
     
-    union {
-        memory_page     PAGES[256];
-        uint8_t         BYTES[256 * 256];
-    } RAM;
+#ifdef ENABLE_MEMORY_WATCHPOINTS
+    const void          *watchpoints;
+#endif
 } memory_t;
 
 #ifdef ENABLE_MEMORY_CACHE
@@ -108,6 +110,78 @@ void memory_free(memory_t *the_memory);
  * provided fill_byte.
  */
 void memory_reset(memory_t *the_memory, uint8_t fill_byte);
+
+/*
+ * @function memory_read
+ *
+ * Returns the byte present at addr in the_memory memory array.  Any
+ * watchpoints triggered by the read will be notified.
+ */
+uint8_t memory_read(memory_t *the_memory, uint16_t addr);
+
+/*
+ * @function memory_write
+ *
+ * Writes the byte value to addr in the_memory memory array.  Any
+ * watchpoints triggered by the write will be notified.
+ */
+void memory_write(memory_t *the_memory, uint16_t addr, uint8_t value);
+
+/*
+ * @function memory_load_from_fd
+ *
+ * Fill the_memory memory array starting at address baseaddr with bytesize bytes
+ * read from the given file descriptor.  The actual number of bytes read is returned.
+ *
+ * If the bytesize and baseaddr together extend beyond the limits of the memory
+ * array, the bytesize is adjusted to only fill the memory array.
+ */
+ssize_t memory_load_from_fd(memory_t *the_memory, uint16_t baseaddr, uint16_t bytesize, int fd);
+
+/*
+ * @function memory_load_from_stream
+ *
+ * Fill the_memory memory array starting at address baseaddr with bytesize bytes
+ * read from the given file stream.  The actual number of bytes read is returned.
+ *
+ * If the bytesize and baseaddr together extend beyond the limits of the memory
+ * array, the bytesize is adjusted to only fill the memory array.
+ */
+ssize_t memory_load_from_stream(memory_t *the_memory, uint16_t baseaddr, uint16_t bytesize, FILE *stream);
+
+/*
+ * @function memory_save_to_fd
+ *
+ * Write bytesize bytes starting at address baseaddr of the_memory memory array
+ * to the given file descriptor.  The actual number of bytes written is returned.
+ *
+ * If the bytesize and baseaddr together extend beyond the limits of the memory
+ * array, the bytesize is adjusted to only reach the end of the memory array.
+ */
+ssize_t memory_save_to_fd(memory_t *the_memory, uint16_t baseaddr, uint16_t bytesize, int fd);
+
+/*
+ * @function memory_save_to_stream
+ *
+ * Write bytesize bytes starting at address baseaddr of the_memory memory array
+ * to the given file stream.  The actual number of bytes written is returned.
+ *
+ * If the bytesize and baseaddr together extend beyond the limits of the memory
+ * array, the bytesize is adjusted to only reach the end of the memory array.
+ */
+ssize_t memory_save_to_stream(memory_t *the_memory, uint16_t baseaddr, uint16_t bytesize, FILE *stream);
+
+/*
+ * @function memory_fprintf
+ *
+ * Output to the given file stream a hexdump of the raw bytes and ASCII characters
+ * in the address range [addr_start, addr_end] of the_memory memory array.
+ */
+int memory_fprintf(memory_t *the_memory, FILE *stream, uint16_t addr_start, uint16_t addr_end);
+
+
+
+#ifdef ENABLE_MEMORY_WATCHPOINTS
 
 /*
  * @enum memory watchpoint events
@@ -198,72 +272,6 @@ void memory_watchpoint_set_events(memory_watchpoint_ref the_watchpoint, memory_w
  */
 void memory_watchpoint_unregister(memory_watchpoint_ref the_watchpoint);
 
-/*
- * @function memory_read
- *
- * Returns the byte present at addr in the_memory memory array.  Any
- * watchpoints triggered by the read will be notified.
- */
-uint8_t memory_read(memory_t *the_memory, uint16_t addr);
-
-/*
- * @function memory_write
- *
- * Writes the byte value to addr in the_memory memory array.  Any
- * watchpoints triggered by the write will be notified.
- */
-void memory_write(memory_t *the_memory, uint16_t addr, uint8_t value);
-
-/*
- * @function memory_load_from_fd
- *
- * Fill the_memory memory array starting at address baseaddr with bytesize bytes
- * read from the given file descriptor.  The actual number of bytes read is returned.
- *
- * If the bytesize and baseaddr together extend beyond the limits of the memory
- * array, the bytesize is adjusted to only fill the memory array.
- */
-ssize_t memory_load_from_fd(memory_t *the_memory, uint16_t baseaddr, uint16_t bytesize, int fd);
-
-/*
- * @function memory_load_from_stream
- *
- * Fill the_memory memory array starting at address baseaddr with bytesize bytes
- * read from the given file stream.  The actual number of bytes read is returned.
- *
- * If the bytesize and baseaddr together extend beyond the limits of the memory
- * array, the bytesize is adjusted to only fill the memory array.
- */
-ssize_t memory_load_from_stream(memory_t *the_memory, uint16_t baseaddr, uint16_t bytesize, FILE *stream);
-
-/*
- * @function memory_save_to_fd
- *
- * Write bytesize bytes starting at address baseaddr of the_memory memory array
- * to the given file descriptor.  The actual number of bytes written is returned.
- *
- * If the bytesize and baseaddr together extend beyond the limits of the memory
- * array, the bytesize is adjusted to only reach the end of the memory array.
- */
-ssize_t memory_save_to_fd(memory_t *the_memory, uint16_t baseaddr, uint16_t bytesize, int fd);
-
-/*
- * @function memory_save_to_stream
- *
- * Write bytesize bytes starting at address baseaddr of the_memory memory array
- * to the given file stream.  The actual number of bytes written is returned.
- *
- * If the bytesize and baseaddr together extend beyond the limits of the memory
- * array, the bytesize is adjusted to only reach the end of the memory array.
- */
-ssize_t memory_save_to_stream(memory_t *the_memory, uint16_t baseaddr, uint16_t bytesize, FILE *stream);
-
-/*
- * @function memory_fprintf
- *
- * Output to the given file stream a hexdump of the raw bytes and ASCII characters
- * in the address range [addr_start, addr_end] of the_memory memory array.
- */
-int memory_fprintf(memory_t *the_memory, FILE *stream, uint16_t addr_start, uint16_t addr_end);
+#endif
 
 #endif /* __MEMORY_H__ */

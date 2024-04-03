@@ -15,6 +15,7 @@ option(ENABLE_ISA_6502_TEST "Compile the ISA 6502 test program" OFF)
 
 option(ENABLE_MEMORY_CACHE "Memory controller caches last 8 bytes read/written" ON)
 option(ENABLE_DISASSEMBLY "Include callbacks to disassemble executed instructions" ON)
+option(ENABLE_MEMORY_WATCHPOINTS "Include memory watchpoint API" ON)
 
 #
 # For disassembly to work, the memory caching must be enabled:
@@ -37,6 +38,12 @@ if (NOT DEFINED ISA_6502_HOST_IS_LE)
         set(ISA_6502_HOST_IS_LE ON CACHE BOOL "Compilation target is little-endian")
     endif()
 endif()
+
+#
+# Locate the curses tui library:
+#
+set(CURSES_NEED_NCURSES TRUE)
+find_package(Curses REQUIRED)
 
 #
 # Add project info/version variables for the sake of the configure file:
@@ -66,4 +73,6 @@ if ( ENABLE_ISA_6502_TEST )
     target_compile_definitions(isa_6502_test PRIVATE ENABLE_ISA_6502_TEST)
 endif ()
 
-add_executable(system_6502 memory.c registers.c isa_6502.c executor.c system_6502.c)
+add_executable(system_6502 memory.c registers.c isa_6502.c executor.c tui_window.c system_6502.c)
+target_include_directories(system_6502 PRIVATE ${CURSES_INCLUDE_DIR})
+target_link_libraries(system_6502 ${CURSES_LIBRARIES})

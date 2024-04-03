@@ -9,6 +9,21 @@
 #include <string.h>
 #include <fcntl.h>
 
+#cmakedefine CURSES_HAVE_NCURSES_H
+#ifdef CURSES_HAVE_NCURSES_H
+#   include "ncurses.h"
+#endif
+
+#cmakedefine CURSES_HAVE_NCURSES_NCURSES_H
+#ifdef CURSES_HAVE_NCURSES_NCURSES_H
+#   include "ncurses/ncurses.h"
+#endif
+
+#cmakedefine CURSES_HAVE_NCURSES_CURSES_H
+#ifdef CURSES_HAVE_NCURSES_CURSES_H
+#   include "ncurses/curses.h"
+#endif
+
 #cmakedefine SYSTEM_6502_NAME "@SYSTEM_6502_NAME@"
 #ifndef SYSTEM_6502_NAME
 #   define SYSTEM_6502_NAME "system_6502"
@@ -22,5 +37,6 @@
 #cmakedefine ISA_6502_HOST_IS_LE
 #cmakedefine ENABLE_MEMORY_CACHE
 #cmakedefine ENABLE_DISASSEMBLY
+#cmakedefine ENABLE_MEMORY_WATCHPOINTS
 
 #endif /* __SYSTEM_6502_CONFIG_H__ */
