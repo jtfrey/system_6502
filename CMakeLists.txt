@@ -99,6 +99,8 @@ if ( ENABLE_REGISTERS_TEST )
     target_compile_definitions(registers_test PRIVATE ENABLE_REGISTERS_TEST)
 endif ()
 
+add_subdirectory(membus)
+
 if ( ENABLE_ISA_6502_TEST )
     add_executable(isa_6502_test memory.c registers.c isa_6502.c)
     target_compile_definitions(isa_6502_test PRIVATE ENABLE_ISA_6502_TEST)

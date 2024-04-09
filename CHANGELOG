@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Memory cache (last 8 bytes read, written)
 - Instruction disassembly callback
+- JMP page-roll bug
+- Generic and ranged-address memory watchpoints implemented
+- NMI and IRQ functionality added to executor
 
 
 ## [1.0.0] - 2024-03-26
