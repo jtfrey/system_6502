@@ -110,6 +110,9 @@ enum {
     isa_6502_instr_stage_end = 1 << 8,
     isa_6502_instr_stage_disasm = 1 << 9,
     isa_6502_instr_stage_execution_complete = 1 << 10,
+    /**/
+    isa_6502_instr_stage_nmi = 1 << 11,
+    isa_6502_instr_stage_irq = 1 << 12,
     isa_6502_instr_stage_illegal_instruction = 1 << 32,
     /**/
     isa_6502_instr_stage_all = 0xFFFFFFFF
@@ -249,5 +252,9 @@ void isa_6502_table_free(isa_6502_table_t *isa_table);
  * isa_6502_addressing_undefined.
  */
 isa_6502_opcode_dispatch_t* isa_6502_table_lookup_dispatch(isa_6502_table_t *isa_table, isa_6502_opcode_t *opcode);
+
+
+uint8_t isa_6502_pop(registers_t *the_registers, memory_t *the_memory);
+void isa_6502_push(registers_t *the_registers, memory_t *the_memory, uint8_t value);
 
 #endif /* __ISA_6502_H__ */

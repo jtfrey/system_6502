@@ -5,11 +5,103 @@
 #include "system_6502_config.h"
 
 /*
- * @typedef memory_page
+ * @typedef memory_addr_range_t
+ *
+ * A type that represents a range of memory addresses.
+ */
+typedef struct memory_addr_range {
+    uint16_t    addr_lo, addr_len;
+} memory_addr_range_t;
+
+extern const memory_addr_range_t memory_addr_range_undef;
+
+/*
+ * @function memory_addr_range_with_lo_and_hi
+ *
+ * Return a memory_addr_range_t structure initialized to represent
+ * the address range [addr_lo, addr_hi] (inclusive).
+ *
+ */
+static inline memory_addr_range_t
+memory_addr_range_with_lo_and_hi(
+    uint16_t        addr_lo,
+    uint16_t        addr_hi
+)
+{
+    memory_addr_range_t new_range = {
+        .addr_lo = addr_lo,
+        .addr_len = (addr_hi - addr_lo + 1)
+    };
+    return new_range;
+}
+
+/*
+ * @function memory_addr_range_with_start_and_len
+ *
+ * Return a memory_addr_range_t structure initialized with the
+ * provided starting address and length of the range.
+ *
+ */
+static inline memory_addr_range_t
+memory_addr_range_with_lo_and_len(
+    uint16_t        addr_lo,
+    uint16_t        addr_len
+)
+{
+    memory_addr_range_t new_range = {
+        .addr_lo = addr_lo,
+        .addr_len = addr_len
+    };
+    return new_range;
+}
+
+/*
+ * @functon memory_addr_range_does_include
+ *
+ * Is the value idx in the given memory address range, r1?
+ */
+static inline bool
+memory_addr_range_does_include(
+    memory_addr_range_t *r1,
+    uint16_t            idx
+)
+{
+    return ( r1->addr_len && (idx >= r1->addr_lo) && (idx < r1->addr_lo + r1->addr_len) );
+}
+
+/*
+ * @function memory_addr_range_do_intersect
+ *
+ * Returns true if the two memory address ranges, r1 and r2, intersect.
+ */
+bool memory_addr_range_do_intersect(memory_addr_range_t *r1, memory_addr_range_t *r2);
+
+/*
+ * @function memory_addr_range_intersection
+ *
+ * If the two memory address ranges, r1 and r2, intersect then set the range rOut
+ * to their intersection.  Otherwise, rOut is set to the undefined range.
+ *
+ * The pointer rOut is returned.
+ */
+memory_addr_range_t* memory_addr_range_intersection(memory_addr_range_t *r1, memory_addr_range_t *r2, memory_addr_range_t *rOut);
+
+/*
+ * @function memory_addr_range_union
+ *
+ * If the two memory address ranges, r1 and r2, intersect then set the range rOut
+ * to their union.  Otherwise, rOut is set to the undefined range.
+ *
+ * The pointer rOut is returned.
+ */
+memory_addr_range_t* memory_addr_range_union(memory_addr_range_t *r1, memory_addr_range_t *r2, memory_addr_range_t *rOut);
+
+/*
+ * @typedef memory_page_t
  *
  * A single page (256 bytes) of memory.
  */
-typedef uint8_t memory_page[256];
+typedef uint8_t memory_page_t[0x100];
 
 /*
  * @typedef memory_t
@@ -35,8 +127,8 @@ typedef uint8_t memory_page[256];
  */
 typedef struct memory {
     union {
-        memory_page     PAGES[256];
-        uint8_t         BYTES[256 * 256];
+        memory_page_t   PAGES[0x100];
+        uint8_t         BYTES[0x100 * 0x100];
     } RAM;
 
 #ifdef ENABLE_MEMORY_CACHE
@@ -45,7 +137,7 @@ typedef struct memory {
 #endif
     
 #ifdef ENABLE_MEMORY_WATCHPOINTS
-    const void          *watchpoints;
+    const void          *watchpoints[3];
 #endif
 } memory_t;
 
@@ -128,6 +220,14 @@ uint8_t memory_read(memory_t *the_memory, uint16_t addr);
 void memory_write(memory_t *the_memory, uint16_t addr, uint8_t value);
 
 /*
+ * @function memory_write_range
+ *
+ * Writes the byte value to the range r of addresses in the_memory memory
+ * array.  Any watchpoints triggered by the write will be notified.
+ */
+void memory_write_range(memory_t *the_memory, memory_addr_range_t *r, uint8_t value);
+
+/*
  * @function memory_load_from_fd
  *
  * Fill the_memory memory array starting at address baseaddr with bytesize bytes
@@ -172,16 +272,43 @@ ssize_t memory_save_to_fd(memory_t *the_memory, uint16_t baseaddr, uint16_t byte
 ssize_t memory_save_to_stream(memory_t *the_memory, uint16_t baseaddr, uint16_t bytesize, FILE *stream);
 
 /*
+ * @enum Memory dump options
+ *
+ * Bit vector values that control the output of memory ranges.
+ *
+ * - memory_dump_opts_8byte_width: output 8 bytes per line rather than 16
+ * - memory_dump_opts_compact: eliminate as much whitespace as possible on each line
+ */
+enum {
+    memory_dump_opts_8byte_width = 1 << 0,
+    memory_dump_opts_compact = 1 << 1
+};
+
+/*
+ * @typedef memory_dump_opts_t
+ *
+ * The type of memory dump options.
+ */
+typedef unsigned int memory_dump_opts_t;
+
+/*
  * @function memory_fprintf
  *
  * Output to the given file stream a hexdump of the raw bytes and ASCII characters
  * in the address range [addr_start, addr_end] of the_memory memory array.
  */
-int memory_fprintf(memory_t *the_memory, FILE *stream, uint16_t addr_start, uint16_t addr_end);
-
+int memory_fprintf(memory_t *the_memory, FILE *stream, memory_dump_opts_t opts, uint16_t addr_start, uint16_t addr_end);
 
 
 #ifdef ENABLE_MEMORY_WATCHPOINTS
+
+enum {
+    memory_watchpoint_subtype_address = 0,
+    memory_watchpoint_subtype_range = 1,
+    memory_watchpoint_subtype_generic = 2
+};
+
+typedef unsigned int memory_watchpoint_subtype_t;
 
 /*
  * @enum memory watchpoint events
@@ -202,7 +329,7 @@ enum {
     //
     memory_watchpoint_event_all     = memory_watchpoint_event_read | memory_watchpoint_event_write,
     //
-    memory_watchpoint_event_merge_at_register   = 1 << 7
+    memory_watchpoint_event_merge_at_register   = 1 << 3
 };
 
 /*
@@ -210,7 +337,7 @@ enum {
  *
  * Type of a memory watchpoint event mask.
  */
-typedef uint8_t memory_watchpoint_event_t;
+typedef unsigned int memory_watchpoint_event_t;
 
 /*
  * @typedef memory_watchpoint_ref
@@ -231,7 +358,7 @@ typedef struct memory_watchpoint * memory_watchpoint_ref;
 typedef void (*memory_watchpoint_callback_t)(memory_t *the_memory, uint16_t addr, memory_watchpoint_event_t the_event, const void *context);
 
 /*
- * @function memory_watchpoint_register
+ * @function memory_watchpoint_register_addr
  *
  * Register callback function the_callback as a watchpoint for on_events events
  * occuring w.r.t. addr in the_memory memory array.  The context argument is an
@@ -240,14 +367,39 @@ typedef void (*memory_watchpoint_callback_t)(memory_t *the_memory, uint16_t addr
  * If the watchpoint is successfully registered the memory_watchpoint_ref that
  * references it is returned.  On failure, NULL is returned.
  */
-memory_watchpoint_ref memory_watchpoint_register(memory_t *the_memory, uint16_t addr, memory_watchpoint_event_t on_events, memory_watchpoint_callback_t the_callback, const void *context);
+memory_watchpoint_ref memory_watchpoint_register_addr(memory_t *the_memory, memory_watchpoint_event_t on_events, memory_watchpoint_callback_t the_callback, const void *context, uint16_t addr);
 
 /*
- * @function memory_watchpoint_get_address
+ * @function memory_watchpoint_register_generic
  *
- * Get the address associated with a watchpoint reference.
+ * Register callback function the_callback as a watchpoint for on_events events
+ * occuring w.r.t. any address in the_memory memory array.  The context argument
+ * is an opaque pointer that is passed to the_callback when it is invoked.
+ *
+ * If the watchpoint is successfully registered the memory_watchpoint_ref that
+ * references it is returned.  On failure, NULL is returned.
  */
-uint16_t memory_watchpoint_get_address(memory_watchpoint_ref the_watchpoint);
+memory_watchpoint_ref memory_watchpoint_register_generic(memory_t *the_memory, memory_watchpoint_event_t on_events, memory_watchpoint_callback_t the_callback, const void *context);
+
+/*
+ * @function memory_watchpoint_register_range
+ *
+ * Register callback function the_callback as a watchpoint for on_events events
+ * occuring w.r.t. addresses in the range addr_range in the_memory memory array.
+ * The context argument is an opaque pointer that is passed to the_callback when
+ * it is invoked.
+ *
+ * If the watchpoint is successfully registered the memory_watchpoint_ref that
+ * references it is returned.  On failure, NULL is returned.
+ */
+memory_watchpoint_ref memory_watchpoint_register_range(memory_t *the_memory, memory_watchpoint_event_t on_events, memory_watchpoint_callback_t the_callback, const void *context, memory_addr_range_t addr_range);
+
+/*
+ * @function memory_watchpoint_get_subtype
+ *
+ * Get the subtype associated with a watchpoint reference.
+ */
+memory_watchpoint_subtype_t memory_watchpoint_get_subtype(memory_watchpoint_ref the_watchpoint);
 
 /*
  * @function memory_watchpoint_get_events

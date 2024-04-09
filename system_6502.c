@@ -28,11 +28,19 @@ our_executor_stage_callback(
     switch ( the_stage ) {
             
         case isa_6502_instr_stage_end:
-            printf("[%04X] MEMORY:         ", the_stage); memory_fprintf(MEMORY, stdout, 0x0000, 0x000F);
+            printf("[%04X] MEMORY:         ", the_stage); memory_fprintf(MEMORY, stdout, 0, 0x0000, 0x000F);
             break;
         
         case isa_6502_instr_stage_disasm:
             if ( disasm && disasm_len ) printf("[%04X] DISASM:         %s\n", the_stage, disasm);
+            break;
+            
+        case isa_6502_instr_stage_nmi:
+            printf("CAUGHT NMI\n");
+            break;
+            
+        case isa_6502_instr_stage_irq:
+            printf("CAUGHT IRQ\n");
             break;
             
     }
@@ -57,9 +65,10 @@ const struct option cli_options[] = {
         { "exec",       required_argument,      NULL,   'x' },
         { "verbose",    no_argument,            NULL,   'v' },
         { "quiet",      no_argument,            NULL,   'q' },
+        { "irq+nmi",    no_argument,            NULL,   '1' },
         { NULL,         no_argument,            NULL,    0  }
     };
-const char *cli_options_str = "hVl:s:p:d:nrbx:vq";
+const char *cli_options_str = "hVl:s:p:d:nrbx:vq1";
 
 //
 
@@ -97,7 +106,7 @@ usage(
         "    --quiet/-q                     display as little execution status as\n"
         "                                   possible\n"
         "\n"
-        "    <addr> = $X{X..} | 0xX{X..} | 0#{#..} | #{#..} | IRQ | NMI | RES\n"
+        "    <addr> = $X{X..} | 0xX{X..} | 0#{#..} | #{#..} | IRQ{±#} | NMI{±#} | RES{±#}\n"
         "    <len> = $X{X..} | 0xX{X..} | 0#{#..} | #{#..} | *\n"
         "    <mem-spec> = <addr>{:<len>} | <addr>{-<addr>}\n"
         "    <file-spec> = <file-path>@<mem-spec>\n"
@@ -110,6 +119,39 @@ usage(
 
 //
 
+enum {
+    system_6502_did_parse_unknown = 0,
+    system_6502_did_parse_irq,
+    system_6502_did_parse_nmi,
+    system_6502_did_parse_res
+};
+
+int
+__parse_addr_str(
+    const char  **s,
+    uint16_t    *addr
+)
+{
+    if ( strncasecmp(*s, "IRQ", 3) == 0 ) {
+        *s = *s + 3;
+        *addr = MEMORY_ADDR_IRQ_VECTOR;
+        return system_6502_did_parse_irq;
+    }
+    if ( strncasecmp(*s, "NMI", 3) == 0 ) {
+        *s = *s + 3;
+        *addr = MEMORY_ADDR_NMI_VECTOR;
+        return system_6502_did_parse_nmi;
+    }
+    if ( strncasecmp(*s, "RES", 3) == 0 ) {
+        *s = *s + 3;
+        *addr = MEMORY_ADDR_RES_VECTOR;
+        return system_6502_did_parse_res;
+    }
+    return system_6502_did_parse_unknown;
+}
+
+//
+
 const char*
 parse_addr(
     const char  *s,
@@ -117,6 +159,7 @@ parse_addr(
 )
 {
     const char  *s_save = s;
+    int         addr_str_id;
     
     if ( *s == '$' ) {
         char            *endptr = NULL;
@@ -138,17 +181,15 @@ parse_addr(
             return endptr;
         }
     }
-    else if ( strncasecmp(s, "IRQ", 3) == 0 ) {
-        *addr = MEMORY_ADDR_IRQ_VECTOR;
-        return s + 3;
-    }
-    else if ( strncasecmp(s, "NMI", 3) == 0 ) {
-        *addr = MEMORY_ADDR_NMI_VECTOR;
-        return s + 3;
-    }
-    else if ( strncasecmp(s, "RES", 3) == 0 ) {
-        *addr = MEMORY_ADDR_RES_VECTOR;
-        return s + 3;
+    else if ( (addr_str_id = __parse_addr_str(&s, addr)) !=  system_6502_did_parse_unknown ) {
+        char        *endptr = NULL;
+        long        v = strtol(s, &endptr, 0);
+        
+        if ( (endptr > s) && (v != 0) ) {
+            *addr += v;
+            s = endptr;
+        }
+        return s;
     }
     fprintf(stderr, "WARNING:  invalid address: %s\n", s_save);
     return NULL;
@@ -322,6 +363,40 @@ parse_fill_spec(
 
 //
 
+void*
+tui_input_thread_run(
+    void    *context
+)
+{
+    executor_t  **the_executor = (executor_t**)context;
+    bool        is_running = true;
+    
+    while ( is_running ) {
+        int     c = fgetc(stdin);
+        
+        switch ( c ) {
+            case 'N':
+            case 'n':
+                printf("Setting NMI\n");
+                executor_set_nmi(*the_executor);
+                printf("Did set NMI\n");
+                break;
+            case 'I':
+            case 'i':
+                printf("Setting IRQ\n");
+                executor_set_irq(*the_executor);
+                printf("Did set IRQ\n");
+                break;
+            case 'q':
+                is_running = false;
+                break;
+        }
+    }
+    return NULL;
+}
+
+//
+
 int
 main(
     int                         argc,
@@ -331,7 +406,10 @@ main(
     int                         rc = 0, optch;
     executor_t                  *the_vm = executor_alloc_with_default_components();
     executor_stage_callback_t   exec_callback = our_executor_stage_callback;
-    isa_6502_instr_stage_t      exec_callback_event_mask = executor_stage_callback_default_stage_mask | isa_6502_instr_stage_disasm;
+    isa_6502_instr_stage_t      exec_callback_event_mask = executor_stage_callback_default_stage_mask | isa_6502_instr_stage_disasm | isa_6502_instr_stage_nmi | isa_6502_instr_stage_irq;
+    pthread_t                   tui_input_thread;
+    
+    pthread_create(&tui_input_thread, NULL, tui_input_thread_run, &the_vm);
     
     while ( (optch = getopt_long(argc, argv, cli_options_str, cli_options, NULL)) != -1 ) {
         switch ( optch ) {
@@ -351,13 +429,13 @@ main(
                 break;
             
             case 'r':
-                printf("INFO:  resetting the VM...\n");
-                executor_reset(the_vm);
+                printf("INFO:  hardware reset of the VM...\n");
+                executor_hard_reset(the_vm);
                 break;
             
             case 'b':
-                printf("INFO:  booting from RES vector...\n");
-                executor_boot(
+                printf("INFO:  software reset (from RES vector)...\n");
+                executor_soft_reset(
                         the_vm,
                         exec_callback,
                         exec_callback_event_mask
@@ -390,11 +468,15 @@ main(
             
             case 'v':
                 exec_callback = our_executor_stage_callback;
-                exec_callback_event_mask = executor_stage_callback_default_stage_mask | isa_6502_instr_stage_disasm;
+                exec_callback_event_mask = executor_stage_callback_default_stage_mask | isa_6502_instr_stage_disasm | isa_6502_instr_stage_nmi | isa_6502_instr_stage_irq;
                 break;
             case 'q':
                 exec_callback = NULL;
                 exec_callback_event_mask = 0;
+                break;
+            case '1':
+                exec_callback = our_executor_stage_callback;
+                exec_callback_event_mask = isa_6502_instr_stage_nmi | isa_6502_instr_stage_irq;
                 break;
             
             case 'l': {
@@ -498,7 +580,7 @@ main(
                 uint16_t        addr_start, addr_end;
                 
                 if ( parse_mem_spec(optarg, &addr_start, &addr_end) ) {
-                    memory_fprintf(the_vm->memory, stdout, addr_start, addr_end);
+                    memory_fprintf(the_vm->memory, stdout, 0, addr_start, addr_end);
                 }
                 break;
             }

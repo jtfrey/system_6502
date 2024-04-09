@@ -6,6 +6,8 @@
 #include "registers.h"
 #include "memory.h"
 #include "isa_6502.h"
+
+#include <pthread.h>
     
 
 /*
@@ -16,6 +18,7 @@
  */
 typedef struct executor {
     uint32_t            flags;
+    pthread_mutex_t     state_lock;
     registers_t         *registers;
     memory_t            *memory;
     isa_6502_table_t    *isa;
@@ -49,12 +52,12 @@ executor_t* executor_alloc_with_components(registers_t *the_registers, memory_t 
 void executor_free(executor_t *the_executor);
 
 /*
- * @function executor_reset
+ * @function executor_hard_reset
  *
  * Reset the_executor's memory array (to all $00 bytes) and reset its
  * register set to defaults.
  */
-void executor_reset(executor_t *the_executor);
+void executor_hard_reset(executor_t *the_executor);
 
 /*
  * @function executor_stage_callback_t
@@ -134,22 +137,39 @@ uint64_t executor_launch_at_address_range(
             );
 
 /*
- * @function executor_boot
+ * @function executor_soft_reset
  *
- * Before calling this function the_executor should have been reset.
  * The RESET vector in the executor's memory array should have been
  * set to the execution starting address.
  *
- * Performs a JMP ($FFFC) to execute the code associated with the
- * RESET vector.  Execution does not complete until an illegal instruction
- * is encountered.
+ * Essentially performs a "JMP ($FFFC)" to execute the code pointed-to by
+ * the RESET vector.  Execution does not complete until an illegal
+ * instruction is encountered.
  *
  * Returns the total number of cycles executed.
  */
-uint64_t executor_boot(
+uint64_t executor_soft_reset(
                 executor_t                  *the_executor,
                 executor_stage_callback_t   callback_fn,
                 isa_6502_instr_stage_t      callback_stage_mask
+            );
+
+/*
+ * @function executor_set_irq
+ *
+ * Signal the executor that an IRQ has been received.
+ */
+void executor_set_irq(
+                executor_t  *the_executor
+            );
+
+/*
+ * @function executor_set_nmi
+ *
+ * Signal the executor that an NMI has been received.
+ */
+void executor_set_nmi(
+                executor_t  *the_executor
             );
 
 #endif /* __EXECUTOR_H__ */

@@ -40,12 +40,22 @@ __isa_6502_JMP(
             ADDR_ptr = ((uint8_t*)&opcode_context->registers->PC) + 1;
 #endif
             /* Read low byte: */
-            *ADDR_ptr = memory_read(opcode_context->memory, ADDR++);
+            *ADDR_ptr = memory_read(opcode_context->memory, ADDR);
+#ifndef DISABLE_JMP_PAGE_BOUNDARY_BUG
+            if ( (ADDR & 0x00FF) == 0x00FF ) {
+                ADDR &= 0xFF00;
+            } else {
+                ADDR++;
+            }
+#else
+            ADDR++;
+#endif
 #ifdef ISA_6502_HOST_IS_LE
             ADDR_ptr++;
 #else
             ADDR_ptr--;
 #endif
+
             at_stage = isa_6502_instr_stage_next_cycle;
             break;
         case 4:

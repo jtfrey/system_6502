@@ -74,8 +74,10 @@ tui_window_refresh(
     int             should_defer_update
 )
 {
-    if ( the_window->refresh_fn ) the_window->refresh_fn(the_window);
-    box(the_window->window_ptr, FALSE, FALSE);
+    int             should_not_show_frame = (the_window->opts & tui_window_opts_disable_box) ? TRUE : FALSE;
+    
+    if ( the_window->refresh_fn ) the_window->refresh_fn(the_window, the_window->refresh_context);
+    box(the_window->window_ptr, should_not_show_frame, should_not_show_frame);
     if ( the_window->title_len ) {
         int             x, y;
         

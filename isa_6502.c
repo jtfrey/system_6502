@@ -37,7 +37,7 @@ const int isa_6502_addressing_operand_counts[isa_6502_addressing_max] = {
 
 //
 
-uint8_t
+static inline uint8_t
 __isa_6502_pop(
     registers_t *the_registers,
     memory_t    *the_memory
@@ -46,9 +46,18 @@ __isa_6502_pop(
     return memory_read(the_memory, 0x0100 + (++the_registers->SP & 0x00FF));
 }
 
+uint8_t
+isa_6502_pop(
+    registers_t *the_registers,
+    memory_t    *the_memory
+)
+{
+    return __isa_6502_pop(the_registers, the_memory);
+}
+
 //
 
-void
+static inline void
 __isa_6502_push(
     registers_t *the_registers,
     memory_t    *the_memory,
@@ -56,6 +65,16 @@ __isa_6502_push(
 )
 {
     memory_write(the_memory, 0x0100 + (the_registers->SP-- & 0x00FF), value);
+}
+
+void
+isa_6502_push(
+    registers_t *the_registers,
+    memory_t    *the_memory,
+    uint8_t     value
+)
+{
+    __isa_6502_push(the_registers, the_memory, value);
 }
 
 //

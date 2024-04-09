@@ -17,6 +17,8 @@ option(ENABLE_MEMORY_CACHE "Memory controller caches last 8 bytes read/written" 
 option(ENABLE_DISASSEMBLY "Include callbacks to disassemble executed instructions" ON)
 option(ENABLE_MEMORY_WATCHPOINTS "Include memory watchpoint API" ON)
 
+option(DISABLE_JMP_PAGE_BOUNDARY_BUG "Do not include the JMP page wrap-around h/w bug" OFF)
+
 #
 # For disassembly to work, the memory caching must be enabled:
 #
@@ -40,10 +42,39 @@ if (NOT DEFINED ISA_6502_HOST_IS_LE)
 endif()
 
 #
+# NMI/IRQ handling is gated by pthread locks:
+#
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Threads REQUIRED)
+
+#
 # Locate the curses tui library:
 #
 set(CURSES_NEED_NCURSES TRUE)
 find_package(Curses REQUIRED)
+
+# The standard CMake curses module does not locate the
+# menu library.  Find the header file and add its path
+# to CURSES_INCLUDE_DIRS if not present:
+find_path(CURSES_MENU_INCLUDE_PATH
+        NAMES ncursesw/menu.h ncursesw/menu.h menu.h
+        PATHS ${CURSES_INCLUDE_DIRS}
+        NO_DEFAULT_PATH
+    )
+if ( CURSES_MENU_INCLUDE_PATH-NOT_FOUND )
+    message(FATAL_ERROR "No curses menu header found")
+endif ()
+if ( NOT ${CURSES_MENU_INCLUDE_PATH} IN_LIST CURSES_INCLUDE_DIRS )
+    list(APPEND CURSES_INCLUDE_DIRS ${CURSES_MENU_INCLUDE_PATH})
+endif ()
+
+# Now find the menu library and add it to CURSES_LIBRARIES if
+# not present:
+find_library(CURSES_MENU_LIBRARY menu)
+if ( CURSES_MENU_LIBRARY-NOT_FOUND )
+    message(FATAL_ERROR "No curses menu library found")
+endif ()
+list(APPEND CURSES_LIBRARIES ${CURSES_MENU_LIBRARY})
 
 #
 # Add project info/version variables for the sake of the configure file:
@@ -74,5 +105,6 @@ if ( ENABLE_ISA_6502_TEST )
 endif ()
 
 add_executable(system_6502 memory.c registers.c isa_6502.c executor.c tui_window.c system_6502.c)
-target_include_directories(system_6502 PRIVATE ${CURSES_INCLUDE_DIR})
-target_link_libraries(system_6502 ${CURSES_LIBRARIES})
+target_include_directories(system_6502 PRIVATE ${CURSES_INCLUDE_DIRS})
+target_compile_options(system_6502 PRIVATE ${CURSES_CFLAGS})
+target_link_libraries(system_6502 PRIVATE ${CURSES_LIBRARIES} Threads::Threads)
