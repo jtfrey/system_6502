@@ -18,7 +18,7 @@ __isa_6502_JSR(
 #else
             ADDR_ptr = ((uint8_t*)&ADDR) + 1;
 #endif
-            *ADDR_ptr = memory_read(opcode_context->memory, opcode_context->registers->PC++);
+            *ADDR_ptr = membus_read_addr(opcode_context->memory, opcode_context->registers->PC++);
 #ifdef ISA_6502_HOST_IS_LE
             ADDR_ptr++;
 #else
@@ -27,7 +27,7 @@ __isa_6502_JSR(
             break;
         case 2:
             /* Read high byte: */
-            *ADDR_ptr = memory_read(opcode_context->memory, opcode_context->registers->PC++);
+            *ADDR_ptr = membus_read_addr(opcode_context->memory, opcode_context->registers->PC++);
             break;
         case 3:
 #ifdef ISA_6502_HOST_IS_LE
@@ -70,8 +70,8 @@ __isa_6502_disasm_JSR(
     switch ( opcode_context->addressing_mode ) {
     
         case isa_6502_addressing_absolute:
-            operand1 = memory_rcache_pop(opcode_context->memory);   /* Target addr, high */
-            operand2 = memory_rcache_pop(opcode_context->memory);   /* Target addr, low */
+            operand1 = membus_rcache_pop(opcode_context->memory);   /* Target addr, high */
+            operand2 = membus_rcache_pop(opcode_context->memory);   /* Target addr, low */
             out_fmt = "JSR $%1$02hhX%2$02hhX";
             break;
     }

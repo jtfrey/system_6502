@@ -1,10 +1,11 @@
 
 #include "executor.h"
+#include "membus_module_std64k.h"
 
 typedef struct {
     executor_t          pointers;
     registers_t         registers;
-    memory_t            memory;
+    membus_t            *memory;
     isa_6502_table_t    isa;
 } executor_bundle_t;
 
@@ -21,13 +22,19 @@ executor_alloc_with_default_components(void)
     executor_bundle_t   *new_executor = (executor_bundle_t*)malloc(sizeof(executor_bundle_t));
     
     if ( new_executor ) {
+        membus_module_ref   base64k = membus_module_std64k_alloc();
+        
+        /* Base 64k under all else: */
+        new_executor->memory = membus_alloc();
+        membus_register_module(new_executor->memory, 0, base64k);
+        
         new_executor->pointers.flags = executor_flags_is_bundle;
         new_executor->pointers.registers = &new_executor->registers;
-        new_executor->pointers.memory = &new_executor->memory;
+        new_executor->pointers.memory = new_executor->memory;
         new_executor->pointers.isa = &new_executor->isa;
         
         registers_init(&new_executor->registers);
-        memory_init(&new_executor->memory);
+        
         isa_6502_table_init(&new_executor->isa, isa_6502_dialect_base);
         
         pthread_mutex_init(&new_executor->pointers.state_lock, NULL);
@@ -40,7 +47,7 @@ executor_alloc_with_default_components(void)
 executor_t*
 executor_alloc_with_components(
     registers_t         *the_registers,
-    memory_t            *the_memory,
+    membus_t            *the_memory,
     isa_6502_table_t    *the_isa
 )
 {
@@ -65,7 +72,7 @@ executor_free(
 {
     if ( (the_executor->flags & executor_flags_is_bundle) != executor_flags_is_bundle ) {
         registers_free(the_executor->registers);
-        memory_free(the_executor->memory);
+        membus_free(the_executor->memory);
         isa_6502_table_free(the_executor->isa);
     }
     pthread_mutex_destroy(&the_executor->state_lock);
@@ -80,9 +87,6 @@ executor_hard_reset(
 )
 {
     pthread_mutex_lock(&the_executor->state_lock);
-    
-    /* Reset memory */
-    memory_reset(the_executor->memory, 0x00);
     
     /* Reset registers */
     registers_reset(the_executor->registers);
@@ -210,7 +214,7 @@ executor_launch_at_address_range(
         if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_pre_fetch_opcode) )
             callback_fn(the_executor, isa_6502_instr_stage_pre_fetch_opcode,
                             isa_6502_opcode_null(), isa_6502_addressing_undefined, NULL, 0, NULL, 0);
-        instr_context.opcode.BYTE = memory_read(MEMORY, REGISTERS->PC++);
+        instr_context.opcode.BYTE = membus_read_addr(MEMORY, REGISTERS->PC++);
         instr_context.cycle_count++, total_cycles++;
         if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_post_fetch_opcode) )
             callback_fn(the_executor, isa_6502_instr_stage_post_fetch_opcode,
@@ -274,7 +278,7 @@ executor_launch_at_address_range(
                 isa_6502_push(the_executor->registers, the_executor->memory, ((the_executor->registers->PC & 0xFF00) >> 8));
                 isa_6502_push(the_executor->registers, the_executor->memory, (the_executor->registers->PC & 0x00FF));
                 isa_6502_push(the_executor->registers, the_executor->memory, the_executor->registers->SR | register_SR_Bit_B);
-                REGISTERS->PC = (MEMORY->RAM.BYTES[MEMORY_ADDR_IRQ_VECTOR + 1] << 8) | MEMORY->RAM.BYTES[MEMORY_ADDR_IRQ_VECTOR];
+                REGISTERS->PC = MEMORY->irq_vector;
             }
         }
         if ( (the_executor->flags & executor_flags_nmi_is_set) ) {
@@ -285,7 +289,7 @@ executor_launch_at_address_range(
             isa_6502_push(the_executor->registers, the_executor->memory, ((the_executor->registers->PC & 0xFF00) >> 8));
             isa_6502_push(the_executor->registers, the_executor->memory, (the_executor->registers->PC & 0x00FF));
             isa_6502_push(the_executor->registers, the_executor->memory, the_executor->registers->SR | register_SR_Bit_B);
-            REGISTERS->PC = (MEMORY->RAM.BYTES[MEMORY_ADDR_NMI_VECTOR + 1] << 8) | MEMORY->RAM.BYTES[MEMORY_ADDR_NMI_VECTOR];
+            REGISTERS->PC = MEMORY->nmi_vector;
         }
         the_executor->flags &= ~(executor_flags_irq_is_set | executor_flags_nmi_is_set);
     }        
@@ -324,7 +328,7 @@ executor_soft_reset(
     if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_pre_load_PC) )
         callback_fn(the_executor, isa_6502_instr_stage_pre_load_PC,
                         isa_6502_opcode_null(), isa_6502_addressing_undefined, NULL, 0, NULL, 0);
-    REGISTERS->PC = (MEMORY->RAM.BYTES[MEMORY_ADDR_RES_VECTOR + 1] << 8) | MEMORY->RAM.BYTES[MEMORY_ADDR_RES_VECTOR];
+    REGISTERS->PC = MEMORY->res_vector;
     if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_post_load_PC) )
         callback_fn(the_executor, isa_6502_instr_stage_post_load_PC,
                         isa_6502_opcode_null(), isa_6502_addressing_undefined, NULL, 0, NULL, 0);
@@ -343,7 +347,7 @@ executor_soft_reset(
         if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_pre_fetch_opcode) )
             callback_fn(the_executor, isa_6502_instr_stage_pre_fetch_opcode,
                             isa_6502_opcode_null(), isa_6502_addressing_undefined, NULL, 0, NULL, 0);
-        instr_context.opcode.BYTE = memory_read(MEMORY, REGISTERS->PC++);
+        instr_context.opcode.BYTE = membus_read_addr(MEMORY, REGISTERS->PC++);
         instr_context.cycle_count++, total_cycles++;
         if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_post_fetch_opcode) )
             callback_fn(the_executor, isa_6502_instr_stage_post_fetch_opcode,
@@ -408,7 +412,7 @@ executor_soft_reset(
                 isa_6502_push(the_executor->registers, the_executor->memory, ((the_executor->registers->PC & 0xFF00) >> 8));
                 isa_6502_push(the_executor->registers, the_executor->memory, (the_executor->registers->PC & 0x00FF));
                 isa_6502_push(the_executor->registers, the_executor->memory, the_executor->registers->SR | register_SR_Bit_B);
-                REGISTERS->PC = (MEMORY->RAM.BYTES[MEMORY_ADDR_IRQ_VECTOR + 1] << 8) | MEMORY->RAM.BYTES[MEMORY_ADDR_IRQ_VECTOR];
+                REGISTERS->PC = MEMORY->irq_vector;
             }
         }
         if ( (the_executor->flags & executor_flags_nmi_is_set) ) {
@@ -419,7 +423,7 @@ executor_soft_reset(
             isa_6502_push(the_executor->registers, the_executor->memory, ((the_executor->registers->PC & 0xFF00) >> 8));
             isa_6502_push(the_executor->registers, the_executor->memory, (the_executor->registers->PC & 0x00FF));
             isa_6502_push(the_executor->registers, the_executor->memory, the_executor->registers->SR | register_SR_Bit_B);
-            REGISTERS->PC = (MEMORY->RAM.BYTES[MEMORY_ADDR_NMI_VECTOR + 1] << 8) | MEMORY->RAM.BYTES[MEMORY_ADDR_NMI_VECTOR];
+            REGISTERS->PC = MEMORY->nmi_vector;
         }
         the_executor->flags &= ~(executor_flags_irq_is_set | executor_flags_nmi_is_set);
     }        

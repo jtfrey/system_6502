@@ -18,7 +18,7 @@ __isa_6502_STX(
 #else
             ADDR_ptr = ((uint8_t*)&ADDR) + 1;
 #endif
-            *ADDR_ptr = memory_read(opcode_context->memory, opcode_context->registers->PC++);
+            *ADDR_ptr = membus_read_addr(opcode_context->memory, opcode_context->registers->PC++);
 #ifdef ISA_6502_HOST_IS_LE
             ADDR_ptr++;
 #else
@@ -35,7 +35,7 @@ __isa_6502_STX(
                     ADDR = (ADDR + opcode_context->registers->Y) & 0x00FF;
                     break;
                 case isa_6502_addressing_absolute:
-                    *ADDR_ptr = memory_read(opcode_context->memory, opcode_context->registers->PC++);
+                    *ADDR_ptr = membus_read_addr(opcode_context->memory, opcode_context->registers->PC++);
                     break;
             }
             break;
@@ -46,7 +46,7 @@ __isa_6502_STX(
             
     }
     if ( at_stage == isa_6502_instr_stage_end) {        
-        memory_write(opcode_context->memory, ADDR, opcode_context->registers->X);
+        membus_write_addr(opcode_context->memory, ADDR, opcode_context->registers->X);
     }
     return at_stage;
 }
@@ -65,16 +65,16 @@ __isa_6502_disasm_STX(
     switch ( opcode_context->addressing_mode ) {
     
         case isa_6502_addressing_zeropage:
-            operand1 = memory_rcache_pop(opcode_context->memory);   /* Zero-page addr */
+            operand1 = membus_rcache_pop(opcode_context->memory);   /* Zero-page addr */
             out_fmt = "STX $%1$02hhX {<= X=$%4$02hhX}";
             break;
         case isa_6502_addressing_zeropage_y_indexed:
-            operand1 = memory_rcache_pop(opcode_context->memory);   /* Zero-page addr */
+            operand1 = membus_rcache_pop(opcode_context->memory);   /* Zero-page addr */
             out_fmt = "STX $%1$02hhX,Y[$%3$02hhX] {<= X=$%4$02hhX}";
             break;
         case isa_6502_addressing_absolute:
-            operand1 = memory_rcache_pop(opcode_context->memory);   /* Target addr, high */
-            operand2 = memory_rcache_pop(opcode_context->memory);   /* Target addr, low */
+            operand1 = membus_rcache_pop(opcode_context->memory);   /* Target addr, high */
+            operand2 = membus_rcache_pop(opcode_context->memory);   /* Target addr, low */
             out_fmt = "STX $%1$02hhX%2$02hhX {<= X=$%4$02hhX}";
             break;
     }

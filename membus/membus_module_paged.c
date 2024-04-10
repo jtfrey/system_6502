@@ -1,5 +1,6 @@
 
 #include "membus_module_paged.h"
+#include "membus_private.h"
 
 typedef struct membus_module_paged {
     membus_module_t         header;
@@ -9,11 +10,11 @@ typedef struct membus_module_paged {
 
 //
 
-bool
+membus_module_op_result_t
 __membus_module_paged_read_addr(
-    const void  *module,
-    uint16_t    addr,
-    uint8_t     *value
+    membus_module_ref	module,
+    uint16_t            addr,
+    uint8_t             *value
 )
 {
     membus_module_paged_t   *MODULE = (membus_module_paged_t*)module;
@@ -21,18 +22,18 @@ __membus_module_paged_read_addr(
     if ( (MODULE->mode & membus_module_mode_mask) != membus_module_mode_wo ) {
         addr -= MODULE->header.addr_range.addr_lo;
         *value = MODULE->pages[addr >> 8][addr & 0x00FF];
-        return true;
+        return membus_module_op_result_accepted;
     }
-    return false;
+    return membus_module_op_result_not_accepted;
 }
 
 //
 
-bool
+membus_module_op_result_t
 __membus_module_paged_write_addr(
-    const void  *module,
-    uint16_t    addr,
-    uint8_t     value
+    membus_module_ref	module,
+    uint16_t            addr,
+    uint8_t             value
 )
 {
     membus_module_paged_t   *MODULE = (membus_module_paged_t*)module;
@@ -40,9 +41,9 @@ __membus_module_paged_write_addr(
     if ( (MODULE->mode & membus_module_mode_mask) != membus_module_mode_ro ) {
         addr -= MODULE->header.addr_range.addr_lo;
         MODULE->pages[addr >> 8][addr & 0x00FF] = value;
-        return true;
+        return membus_module_op_result_accepted;
     }
-    return false;
+    return membus_module_op_result_not_accepted;
 }
 
 //
@@ -57,7 +58,7 @@ static const membus_module_t membus_module_paged_header = {
 
 //
 
-membus_module_t*
+membus_module_ref
 membus_module_paged_alloc(
     membus_module_mode_t    mode,
     uint8_t                 base_page,
@@ -80,5 +81,5 @@ membus_module_paged_alloc(
                                                 (uint16_t)n_pages << 8
                                             );
     }
-    return (membus_module_t*)new_module;
+    return (membus_module_ref)new_module;
 }

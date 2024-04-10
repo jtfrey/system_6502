@@ -47,7 +47,7 @@ __isa_6502_BRK(
 #else
             PC_ptr = ((uint8_t*)&opcode_context->registers->PC);
 #endif
-            *PC_ptr = memory_read(opcode_context->memory, MEMORY_ADDR_NMI_VECTOR);
+            *PC_ptr = membus_read_addr(opcode_context->memory, MEMORY_ADDR_NMI_VECTOR);
 #ifdef ISA_6502_HOST_IS_LE
             PC_ptr--;
 #else
@@ -55,7 +55,7 @@ __isa_6502_BRK(
 #endif
             break;
         case 6:
-            *PC_ptr = memory_read(opcode_context->memory, MEMORY_ADDR_NMI_VECTOR + 1);
+            *PC_ptr = membus_read_addr(opcode_context->memory, MEMORY_ADDR_NMI_VECTOR + 1);
             at_stage = isa_6502_instr_stage_end;
             break;
     }

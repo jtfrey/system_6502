@@ -3,7 +3,7 @@
 #define __ISA_6502_H__
 
 #include "system_6502_config.h"
-#include "memory.h"
+#include "membus.h"
 #include "registers.h"
 
 /*
@@ -88,7 +88,7 @@ typedef struct {
     isa_6502_opcode_t       opcode;
     isa_6502_addressing_t   addressing_mode;
     uint64_t                cycle_count;
-    memory_t                *memory;
+    membus_t                *memory;
     registers_t             *registers;
 } isa_6502_instr_context_t;
 
@@ -254,7 +254,7 @@ void isa_6502_table_free(isa_6502_table_t *isa_table);
 isa_6502_opcode_dispatch_t* isa_6502_table_lookup_dispatch(isa_6502_table_t *isa_table, isa_6502_opcode_t *opcode);
 
 
-uint8_t isa_6502_pop(registers_t *the_registers, memory_t *the_memory);
-void isa_6502_push(registers_t *the_registers, memory_t *the_memory, uint8_t value);
+uint8_t isa_6502_pop(registers_t *the_registers, membus_t *the_membus);
+void isa_6502_push(registers_t *the_registers, membus_t *the_membus, uint8_t value);
 
 #endif /* __ISA_6502_H__ */

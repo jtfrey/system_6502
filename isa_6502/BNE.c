@@ -13,7 +13,7 @@ __isa_6502_BNE(
     switch ( opcode_context->cycle_count ) {
         case 1:
             ADDR = 0x0000;
-            DELTA = memory_read(opcode_context->memory, opcode_context->registers->PC++); 
+            DELTA = membus_read_addr(opcode_context->memory, opcode_context->registers->PC++); 
             break;
         
         case 2:
@@ -46,7 +46,7 @@ __isa_6502_disasm_BNE(
 )
 {
 #ifdef ENABLE_DISASSEMBLY
-    uint8_t                     operand = memory_rcache_pop(opcode_context->memory);
+    uint8_t                     operand = membus_rcache_pop(opcode_context->memory);
     
     return snprintf(buffer, buffer_len, "BNE %hhd", *((int8_t*)&operand));
 #else

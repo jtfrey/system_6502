@@ -18,7 +18,7 @@ __isa_6502_STA(
 #else
             ADDR_ptr = ((uint8_t*)&ADDR) + 1;
 #endif
-            *ADDR_ptr = memory_read(opcode_context->memory, opcode_context->registers->PC++);
+            *ADDR_ptr = membus_read_addr(opcode_context->memory, opcode_context->registers->PC++);
 #ifdef ISA_6502_HOST_IS_LE
             ADDR_ptr++;
 #else
@@ -37,7 +37,7 @@ __isa_6502_STA(
                 case isa_6502_addressing_absolute:
                 case isa_6502_addressing_absolute_x_indexed:
                 case isa_6502_addressing_absolute_y_indexed:
-                    *ADDR_ptr = memory_read(opcode_context->memory, opcode_context->registers->PC++);
+                    *ADDR_ptr = membus_read_addr(opcode_context->memory, opcode_context->registers->PC++);
                     break;
                 case isa_6502_addressing_x_indexed_indirect:
                 case isa_6502_addressing_indirect_y_indexed:
@@ -66,7 +66,7 @@ __isa_6502_STA(
 #else
                     ADDR2_ptr = ((uint8_t*)&ADDR2) + 1;
 #endif
-                    *ADDR2_ptr = memory_read(opcode_context->memory, ADDR++);
+                    *ADDR2_ptr = membus_read_addr(opcode_context->memory, ADDR++);
 #ifdef ISA_6502_HOST_IS_LE
                     ADDR2_ptr++;
 #else
@@ -83,10 +83,10 @@ __isa_6502_STA(
                     at_stage = isa_6502_instr_stage_end;
                     break;
                 case isa_6502_addressing_x_indexed_indirect:
-                    *ADDR2_ptr = memory_read(opcode_context->memory, ADDR);
+                    *ADDR2_ptr = membus_read_addr(opcode_context->memory, ADDR);
                     break;
                 case isa_6502_addressing_indirect_y_indexed:
-                    *ADDR2_ptr = memory_read(opcode_context->memory, ADDR);
+                    *ADDR2_ptr = membus_read_addr(opcode_context->memory, ADDR);
                     ADDR2 += opcode_context->registers->Y;
                     break;
             }
@@ -98,7 +98,7 @@ __isa_6502_STA(
             break;
     }
     if ( at_stage == isa_6502_instr_stage_end) {
-        memory_write(opcode_context->memory, ADDR, opcode_context->registers->A);
+        membus_write_addr(opcode_context->memory, ADDR, opcode_context->registers->A);
     }
     return at_stage;
 }
@@ -117,45 +117,45 @@ __isa_6502_disasm_STA(
     switch ( opcode_context->addressing_mode ) {
     
         case isa_6502_addressing_zeropage:
-            value = memory_wcache_pop(opcode_context->memory);      /* Value */
-            operand1 = memory_rcache_pop(opcode_context->memory);   /* Zero-page addr */
+            value = membus_wcache_pop(opcode_context->memory);      /* Value */
+            operand1 = membus_rcache_pop(opcode_context->memory);   /* Zero-page addr */
             out_fmt = "STA $%1$02hhX {<= $%6$02hhX}";
             break;
         case isa_6502_addressing_zeropage_x_indexed:
-            value = memory_wcache_pop(opcode_context->memory);      /* Value */
-            operand1 = memory_rcache_pop(opcode_context->memory);   /* Zero-page addr */
+            value = membus_wcache_pop(opcode_context->memory);      /* Value */
+            operand1 = membus_rcache_pop(opcode_context->memory);   /* Zero-page addr */
             out_fmt = "STA $%1$02hhX,X {<= $%6$02hhX}";
             break;
         case isa_6502_addressing_absolute:
-            value = memory_wcache_pop(opcode_context->memory);      /* Value */
-            operand1 = memory_rcache_pop(opcode_context->memory);   /* Target addr, high */
-            operand2 = memory_rcache_pop(opcode_context->memory);   /* Target addr, low */
+            value = membus_wcache_pop(opcode_context->memory);      /* Value */
+            operand1 = membus_rcache_pop(opcode_context->memory);   /* Target addr, high */
+            operand2 = membus_rcache_pop(opcode_context->memory);   /* Target addr, low */
             out_fmt = "STA $%1$02hhX%2$02hhX {<= $%6$02hhX}";
             break;
         case isa_6502_addressing_absolute_x_indexed:
-            value = memory_wcache_pop(opcode_context->memory);      /* Value */
-            operand1 = memory_rcache_pop(opcode_context->memory);   /* Target addr, high */
-            operand2 = memory_rcache_pop(opcode_context->memory);   /* Target addr, low */
+            value = membus_wcache_pop(opcode_context->memory);      /* Value */
+            operand1 = membus_rcache_pop(opcode_context->memory);   /* Target addr, high */
+            operand2 = membus_rcache_pop(opcode_context->memory);   /* Target addr, low */
             out_fmt = "STA $%1$02hhX%2$02hhX,X[$%4$02hhX] {<= $%6$02hhX}";
             break;
         case isa_6502_addressing_absolute_y_indexed:
-            value = memory_wcache_pop(opcode_context->memory);      /* Value */
-            operand1 = memory_rcache_pop(opcode_context->memory);   /* Target addr, high */
-            operand2 = memory_rcache_pop(opcode_context->memory);   /* Target addr, low */
+            value = membus_wcache_pop(opcode_context->memory);      /* Value */
+            operand1 = membus_rcache_pop(opcode_context->memory);   /* Target addr, high */
+            operand2 = membus_rcache_pop(opcode_context->memory);   /* Target addr, low */
             out_fmt = "STA $%1$02hhX%2$02hhX,Y[$%5$02hhX] {<= $%6$02hhX}";
             break;
         case isa_6502_addressing_x_indexed_indirect:
-            value = memory_wcache_pop(opcode_context->memory);      /* Value */
-            operand1 = memory_rcache_pop(opcode_context->memory);   /* Target addr, high */
-            operand2 = memory_rcache_pop(opcode_context->memory);   /* Target addr, low */
-            operand3 = memory_rcache_pop(opcode_context->memory);   /* Zero-page addr */
+            value = membus_wcache_pop(opcode_context->memory);      /* Value */
+            operand1 = membus_rcache_pop(opcode_context->memory);   /* Target addr, high */
+            operand2 = membus_rcache_pop(opcode_context->memory);   /* Target addr, low */
+            operand3 = membus_rcache_pop(opcode_context->memory);   /* Zero-page addr */
             out_fmt = "STA ($%3$02hhX=$%1$02hhX%2$02hhX,X[$%4$02hhX]) {<= $%6$02hhX}";
             break;
         case isa_6502_addressing_indirect_y_indexed:
-            value = memory_wcache_pop(opcode_context->memory);      /* Value */
-            operand1 = memory_rcache_pop(opcode_context->memory);   /* Target addr, high */
-            operand2 = memory_rcache_pop(opcode_context->memory);   /* Target addr, low */
-            operand3 = memory_rcache_pop(opcode_context->memory);   /* Zero-page addr */
+            value = membus_wcache_pop(opcode_context->memory);      /* Value */
+            operand1 = membus_rcache_pop(opcode_context->memory);   /* Target addr, high */
+            operand2 = membus_rcache_pop(opcode_context->memory);   /* Target addr, low */
+            operand3 = membus_rcache_pop(opcode_context->memory);   /* Zero-page addr */
             out_fmt = "STA ($%3$02hhX[$%1$02hhX%2$02hhX]),Y[$%5$02hhX] {<= $%6$02hhX}";
             break;
     }

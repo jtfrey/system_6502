@@ -15,7 +15,7 @@ __isa_6502_LDA(
         case 1:
             ADDR = 0x0000;
             if ( opcode_context->addressing_mode == isa_6502_addressing_immediate ) {
-                ALU = memory_read(opcode_context->memory, opcode_context->registers->PC++);
+                ALU = membus_read_addr(opcode_context->memory, opcode_context->registers->PC++);
                 at_stage = isa_6502_instr_stage_end;
             } else {
 #ifdef ISA_6502_HOST_IS_LE
@@ -23,7 +23,7 @@ __isa_6502_LDA(
 #else
                 ADDR_ptr = ((uint8_t*)&ADDR) + 1;
 #endif
-                *ADDR_ptr = memory_read(opcode_context->memory, opcode_context->registers->PC++);
+                *ADDR_ptr = membus_read_addr(opcode_context->memory, opcode_context->registers->PC++);
 #ifdef ISA_6502_HOST_IS_LE
                 ADDR_ptr++;
 #else
@@ -35,7 +35,7 @@ __isa_6502_LDA(
         case 2:
             switch ( opcode_context->addressing_mode ) {
                 case isa_6502_addressing_zeropage:
-                    ALU = memory_read(opcode_context->memory, ADDR);
+                    ALU = membus_read_addr(opcode_context->memory, ADDR);
                     at_stage = isa_6502_instr_stage_end;
                     break;
                 case isa_6502_addressing_zeropage_x_indexed:
@@ -44,7 +44,7 @@ __isa_6502_LDA(
                 case isa_6502_addressing_absolute:
                 case isa_6502_addressing_absolute_x_indexed:
                 case isa_6502_addressing_absolute_y_indexed:
-                    *ADDR_ptr = memory_read(opcode_context->memory, opcode_context->registers->PC++);
+                    *ADDR_ptr = membus_read_addr(opcode_context->memory, opcode_context->registers->PC++);
                     break;
                 case isa_6502_addressing_x_indexed_indirect:
                 case isa_6502_addressing_indirect_y_indexed:
@@ -56,14 +56,14 @@ __isa_6502_LDA(
             switch ( opcode_context->addressing_mode ) {
                 case isa_6502_addressing_zeropage_x_indexed:
                 case isa_6502_addressing_absolute:
-                    ALU = memory_read(opcode_context->memory, ADDR);
+                    ALU = membus_read_addr(opcode_context->memory, ADDR);
                     at_stage = isa_6502_instr_stage_end;
                     break;
                 case isa_6502_addressing_absolute_x_indexed:
                     ADDR_pre_index = ADDR;
                     ADDR += opcode_context->registers->X;
                     if ( (ADDR_pre_index & 0xFF00) == (ADDR & 0xFF00) ) {
-                        ALU = memory_read(opcode_context->memory, ADDR);
+                        ALU = membus_read_addr(opcode_context->memory, ADDR);
                         at_stage = isa_6502_instr_stage_end;
                     }
                     break;
@@ -71,7 +71,7 @@ __isa_6502_LDA(
                     ADDR_pre_index = ADDR;
                     ADDR += opcode_context->registers->Y;
                     if ( (ADDR_pre_index & 0xFF00) == (ADDR & 0xFF00) ) {
-                        ALU = memory_read(opcode_context->memory, ADDR);
+                        ALU = membus_read_addr(opcode_context->memory, ADDR);
                         at_stage = isa_6502_instr_stage_end;
                     }
                     break;
@@ -83,7 +83,7 @@ __isa_6502_LDA(
 #else
                     ALU_ptr = ((uint8_t*)&ALU) + 1;
 #endif
-                    *ALU_ptr = memory_read(opcode_context->memory, ADDR++);
+                    *ALU_ptr = membus_read_addr(opcode_context->memory, ADDR++);
 #ifdef ISA_6502_HOST_IS_LE
                     ALU_ptr++;
 #else
@@ -97,18 +97,18 @@ __isa_6502_LDA(
             switch ( opcode_context->addressing_mode ) {\
                 case isa_6502_addressing_absolute_x_indexed:
                 case isa_6502_addressing_absolute_y_indexed:
-                    ALU = memory_read(opcode_context->memory, ADDR);
+                    ALU = membus_read_addr(opcode_context->memory, ADDR);
                     at_stage = isa_6502_instr_stage_end;
                     break;
                 case isa_6502_addressing_x_indexed_indirect:
-                    *ALU_ptr = memory_read(opcode_context->memory, ADDR);
+                    *ALU_ptr = membus_read_addr(opcode_context->memory, ADDR);
                     break;
                 case isa_6502_addressing_indirect_y_indexed:
-                    *ALU_ptr = memory_read(opcode_context->memory, ADDR);
+                    *ALU_ptr = membus_read_addr(opcode_context->memory, ADDR);
                     ALU_pre_index = ALU;
                     ALU += opcode_context->registers->Y;
                     if ( (ALU_pre_index & 0xFF00) == (ALU & 0xFF00) ) {
-                        ALU = memory_read(opcode_context->memory, ALU);
+                        ALU = membus_read_addr(opcode_context->memory, ALU);
                         at_stage = isa_6502_instr_stage_end;
                     }
                     break;
@@ -116,7 +116,7 @@ __isa_6502_LDA(
             break;
         
         case 5:
-            ALU = memory_read(opcode_context->memory, ALU);
+            ALU = membus_read_addr(opcode_context->memory, ALU);
             at_stage = isa_6502_instr_stage_end;
             break;
     }
@@ -141,49 +141,49 @@ __isa_6502_disasm_LDA(
     switch ( opcode_context->addressing_mode ) {
     
         case isa_6502_addressing_immediate:
-            value = memory_rcache_pop(opcode_context->memory);      /* Value */
+            value = membus_rcache_pop(opcode_context->memory);      /* Value */
             out_fmt = "LDA #$%6$02hhX {A = $%6$02hhX}";
             break;
         case isa_6502_addressing_zeropage:
-            value = memory_rcache_pop(opcode_context->memory);      /* Value */
-            operand1 = memory_rcache_pop(opcode_context->memory);   /* Zero-page addr */
+            value = membus_rcache_pop(opcode_context->memory);      /* Value */
+            operand1 = membus_rcache_pop(opcode_context->memory);   /* Zero-page addr */
             out_fmt = "LDA $%1$02hhX {A = $%6$02hhX}";
             break;
         case isa_6502_addressing_zeropage_x_indexed:
-            value = memory_rcache_pop(opcode_context->memory);      /* Value */
-            operand1 = memory_rcache_pop(opcode_context->memory);   /* Zero-page addr */
+            value = membus_rcache_pop(opcode_context->memory);      /* Value */
+            operand1 = membus_rcache_pop(opcode_context->memory);   /* Zero-page addr */
             out_fmt = "LDA $%1$02hhX,X {A = $%6$02hhX}";
             break;
         case isa_6502_addressing_absolute:
-            value = memory_rcache_pop(opcode_context->memory);      /* Value */
-            operand1 = memory_rcache_pop(opcode_context->memory);   /* Target addr, high */
-            operand2 = memory_rcache_pop(opcode_context->memory);   /* Target addr, low */
+            value = membus_rcache_pop(opcode_context->memory);      /* Value */
+            operand1 = membus_rcache_pop(opcode_context->memory);   /* Target addr, high */
+            operand2 = membus_rcache_pop(opcode_context->memory);   /* Target addr, low */
             out_fmt = "LDA $%1$02hhX%2$02hhX {A = $%6$02hhX}";
             break;
         case isa_6502_addressing_absolute_x_indexed:
-            value = memory_rcache_pop(opcode_context->memory);      /* Value */
-            operand1 = memory_rcache_pop(opcode_context->memory);   /* Target addr, high */
-            operand2 = memory_rcache_pop(opcode_context->memory);   /* Target addr, low */
+            value = membus_rcache_pop(opcode_context->memory);      /* Value */
+            operand1 = membus_rcache_pop(opcode_context->memory);   /* Target addr, high */
+            operand2 = membus_rcache_pop(opcode_context->memory);   /* Target addr, low */
             out_fmt = "LDA $%1$02hhX%2$02hhX,X[$%4$02hhX] {A = $%6$02hhX}";
             break;
         case isa_6502_addressing_absolute_y_indexed:
-            value = memory_rcache_pop(opcode_context->memory);      /* Value */
-            operand1 = memory_rcache_pop(opcode_context->memory);   /* Target addr, high */
-            operand2 = memory_rcache_pop(opcode_context->memory);   /* Target addr, low */
+            value = membus_rcache_pop(opcode_context->memory);      /* Value */
+            operand1 = membus_rcache_pop(opcode_context->memory);   /* Target addr, high */
+            operand2 = membus_rcache_pop(opcode_context->memory);   /* Target addr, low */
             out_fmt = "LDA $%1$02hhX%2$02hhX,Y[$%5$02hhX] {A = $%6$02hhX}";
             break;
         case isa_6502_addressing_x_indexed_indirect:
-            value = memory_rcache_pop(opcode_context->memory);      /* Value */
-            operand1 = memory_rcache_pop(opcode_context->memory);   /* Target addr, high */
-            operand2 = memory_rcache_pop(opcode_context->memory);   /* Target addr, low */
-            operand3 = memory_rcache_pop(opcode_context->memory);   /* Zero-page addr */
+            value = membus_rcache_pop(opcode_context->memory);      /* Value */
+            operand1 = membus_rcache_pop(opcode_context->memory);   /* Target addr, high */
+            operand2 = membus_rcache_pop(opcode_context->memory);   /* Target addr, low */
+            operand3 = membus_rcache_pop(opcode_context->memory);   /* Zero-page addr */
             out_fmt = "LDA ($%3$02hhX=$%1$02hhX%2$02hhX,X[$%4$02hhX]) {A = $%6$02hhX}";
             break;
         case isa_6502_addressing_indirect_y_indexed:
-            value = memory_rcache_pop(opcode_context->memory);      /* Value */
-            operand1 = memory_rcache_pop(opcode_context->memory);   /* Target addr, high */
-            operand2 = memory_rcache_pop(opcode_context->memory);   /* Target addr, low */
-            operand3 = memory_rcache_pop(opcode_context->memory);   /* Zero-page addr */
+            value = membus_rcache_pop(opcode_context->memory);      /* Value */
+            operand1 = membus_rcache_pop(opcode_context->memory);   /* Target addr, high */
+            operand2 = membus_rcache_pop(opcode_context->memory);   /* Target addr, low */
+            operand3 = membus_rcache_pop(opcode_context->memory);   /* Zero-page addr */
             out_fmt = "LDA ($%3$02hhX[$%1$02hhX%2$02hhX]),Y[$%5$02hhX] {A = $%6$02hhX}";
             break;
     }

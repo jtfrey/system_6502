@@ -4,7 +4,7 @@
 
 #include "system_6502_config.h"
 #include "registers.h"
-#include "memory.h"
+#include "membus.h"
 #include "isa_6502.h"
 
 #include <pthread.h>
@@ -20,7 +20,7 @@ typedef struct executor {
     uint32_t            flags;
     pthread_mutex_t     state_lock;
     registers_t         *registers;
-    memory_t            *memory;
+    membus_t            *memory;
     isa_6502_table_t    *isa;
 } executor_t;
 
@@ -42,7 +42,7 @@ executor_t* executor_alloc_with_default_components(void);
  * memory array, and ISA.  All components should already be initialized before
  * being passed to this function.
  */
-executor_t* executor_alloc_with_components(registers_t *the_registers, memory_t *the_memory, isa_6502_table_t *the_isa);
+executor_t* executor_alloc_with_components(registers_t *the_registers, membus_t *the_memory, isa_6502_table_t *the_isa);
 
 /*
  * @function executor_free

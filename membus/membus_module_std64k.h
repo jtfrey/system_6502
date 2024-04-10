@@ -4,6 +4,6 @@
 
 #include "membus.h"
 
-membus_module_t* membus_module_std64k_alloc(void);
+membus_module_ref membus_module_std64k_alloc(void);
 
 #endif /* __MEMBUS_MODULE_STD64K_H__ */

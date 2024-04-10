@@ -28,7 +28,7 @@ our_executor_stage_callback(
     switch ( the_stage ) {
             
         case isa_6502_instr_stage_end:
-            printf("[%04X] MEMORY:         ", the_stage); memory_fprintf(MEMORY, stdout, 0, 0x0000, 0x000F);
+            printf("[%04X] MEMORY:         ", the_stage); membus_fprintf(MEMORY, stdout, 0, memory_addr_range_with_lo_and_hi(0x0000, 0x000F));
             break;
         
         case isa_6502_instr_stage_disasm:
@@ -487,7 +487,10 @@ main(
                     int         bin_fd = open(file_path, O_RDONLY);
                     
                     if ( bin_fd ) {
-                        ssize_t did_read = memory_load_from_fd(the_vm->memory, addr_start, (addr_end - addr_start + 1), bin_fd);
+                        ssize_t did_read = membus_load_from_fd(
+                                                the_vm->memory,
+                                                memory_addr_range_with_lo_and_hi(addr_start, addr_end),
+                                                bin_fd);
                         
                         printf("INFO:  read %ld ($%04hX) bytes into memory range $%04hX-$%04hX\n",
                                 did_read,
@@ -515,7 +518,10 @@ main(
                     int         bin_fd = open(file_path, O_WRONLY | O_CREAT | (should_append ? O_APPEND : O_TRUNC), 0666);
                     
                     if ( bin_fd ) {
-                        ssize_t did_write = memory_save_to_fd(the_vm->memory, addr_start, (addr_end - addr_start + 1), bin_fd);
+                        ssize_t did_write = membus_save_to_fd(
+                                                    the_vm->memory,
+                                                    memory_addr_range_with_lo_and_hi(addr_start, addr_end),
+                                                    bin_fd);
                         
                         printf("INFO:  wrote %ld ($%04hX) bytes from memory range $%04hX-$%04hX\n",
                                 did_write,
@@ -538,37 +544,11 @@ main(
                 if ( parse_fill_spec(optarg, &fill_value, &fill_size, &addr_start, &addr_end) ) {
                     switch ( fill_size ) {
                         case 1: {
-                            memset(
-                                    &the_vm->memory->RAM.BYTES[addr_start],
-                                    fill_value,
-                                    addr_end - addr_start + 1
-                                );
+                            membus_write_byte_to_range(the_vm->memory, memory_addr_range_with_lo_and_hi(addr_start, addr_end), fill_value);
                             break;
                         }
                         case 2: {
-                            uint8_t     *p = &the_vm->memory->RAM.BYTES[addr_start];
-                            uint16_t    l = addr_end - addr_start + 1;
-                            
-                            /* Do at least one byte for our range: */
-                            if ( l == 0 ) l = 1;
-                            while ( l > 1 ) {
-#ifdef ISA_6502_HOST_IS_LE
-                                *((uint16_t*)p) = fill_value;
-                                p += 2;
-#else
-                                *p++ = *((uint8_t*)&fill_value + 1);
-                                *p++ = *((uint8_t*)&fill_value);
-#endif
-                                l -= 2;
-                            }
-                            if ( l > 0 ) {
-#ifdef ISA_6502_HOST_IS_LE
-                                *p++ = *((uint8_t*)&fill_value);
-#else
-                                *p++ = *((uint8_t*)&fill_value + 1);
-#endif
-                                l--;
-                            }
+                            membus_write_word_to_range(the_vm->memory, memory_addr_range_with_lo_and_hi(addr_start, addr_end), fill_value);
                             break;
                         }
                     }
@@ -580,7 +560,7 @@ main(
                 uint16_t        addr_start, addr_end;
                 
                 if ( parse_mem_spec(optarg, &addr_start, &addr_end) ) {
-                    memory_fprintf(the_vm->memory, stdout, 0, addr_start, addr_end);
+                    membus_fprintf(the_vm->memory, stdout, 0, memory_addr_range_with_lo_and_hi(addr_start, addr_end));
                 }
                 break;
             }

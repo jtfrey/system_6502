@@ -19,7 +19,7 @@ __isa_6502_BIT(
 #else
             ADDR_ptr = ((uint8_t*)&ADDR) + 1;
 #endif
-            *ADDR_ptr = memory_read(opcode_context->memory, opcode_context->registers->PC++);
+            *ADDR_ptr = membus_read_addr(opcode_context->memory, opcode_context->registers->PC++);
 #ifdef ISA_6502_HOST_IS_LE
             ADDR_ptr++;
 #else
@@ -30,17 +30,17 @@ __isa_6502_BIT(
         case 2:
             switch ( opcode_context->addressing_mode ) {
                 case isa_6502_addressing_zeropage:
-                    ALU = memory_read(opcode_context->memory, ADDR);
+                    ALU = membus_read_addr(opcode_context->memory, ADDR);
                     at_stage = isa_6502_instr_stage_end;
                     break;
                 case isa_6502_addressing_absolute:
-                    *ADDR_ptr = memory_read(opcode_context->memory, opcode_context->registers->PC++);
+                    *ADDR_ptr = membus_read_addr(opcode_context->memory, opcode_context->registers->PC++);
                     break;
             }
             break;
         
         case 3:
-            ALU = memory_read(opcode_context->memory, ADDR);
+            ALU = membus_read_addr(opcode_context->memory, ADDR);
             at_stage = isa_6502_instr_stage_end;
             break;
     }
@@ -67,8 +67,8 @@ __isa_6502_disasm_BIT(
     switch ( opcode_context->addressing_mode ) {
     
         case isa_6502_addressing_zeropage:
-            value = memory_rcache_pop(opcode_context->memory);      /* Value */
-            operand1 = memory_rcache_pop(opcode_context->memory);   /* Zero-page addr */
+            value = membus_rcache_pop(opcode_context->memory);      /* Value */
+            operand1 = membus_rcache_pop(opcode_context->memory);   /* Zero-page addr */
             return snprintf(buffer, buffer_len, "BIT $%02hhX {$%02hhX TEST $%02hhX => %hhu%hhu----%hhu-}",
                         operand1, opcode_context->registers->A, value,
                         registers_SR_get_bit(opcode_context->registers, register_SR_Bit_N),
@@ -76,9 +76,9 @@ __isa_6502_disasm_BIT(
                         registers_SR_get_bit(opcode_context->registers, register_SR_Bit_Z));
             break;
         case isa_6502_addressing_absolute:
-            value = memory_rcache_pop(opcode_context->memory);      /* Value */
-            operand1 = memory_rcache_pop(opcode_context->memory);   /* Target addr, high */
-            operand2 = memory_rcache_pop(opcode_context->memory);   /* Target addr, low */
+            value = membus_rcache_pop(opcode_context->memory);      /* Value */
+            operand1 = membus_rcache_pop(opcode_context->memory);   /* Target addr, high */
+            operand2 = membus_rcache_pop(opcode_context->memory);   /* Target addr, low */
             return snprintf(buffer, buffer_len, "BIT $%02hhX%02hhX {$%02hhX TEST $%02hhX => %hhu%hhu----%hhu-}",
                         operand1, operand2, opcode_context->registers->A, value,
                         registers_SR_get_bit(opcode_context->registers, register_SR_Bit_N),

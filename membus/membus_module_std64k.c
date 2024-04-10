@@ -1,5 +1,6 @@
 
 #include "membus_module_std64k.h"
+#include "membus_private.h"
 
 typedef struct membus_module_std64k {
     membus_module_t     header;
@@ -11,32 +12,32 @@ typedef struct membus_module_std64k {
 
 //
 
-bool
+membus_module_op_result_t
 __membus_module_std64k_read_addr(
-    const void  *module,
-    uint16_t    addr,
-    uint8_t     *value
+    membus_module_ref	module,
+    uint16_t            addr,
+    uint8_t             *value
 )
 {
     membus_module_std64k_t  *MODULE = (membus_module_std64k_t*)module;
     
     *value = MODULE->RAM.BYTES[addr];
-    return true;
+    return membus_module_op_result_accepted;
 }
 
 //
 
-bool
+membus_module_op_result_t
 __membus_module_std64k_write_addr(
-    const void  *module,
-    uint16_t    addr,
-    uint8_t     value
+    membus_module_ref	module,
+    uint16_t            addr,
+    uint8_t             value
 )
 {
     membus_module_std64k_t  *MODULE = (membus_module_std64k_t*)module;
     
     MODULE->RAM.BYTES[addr] = value;
-    return true;
+    return membus_module_op_result_accepted;
 }
 
 //
@@ -51,11 +52,11 @@ static const membus_module_t membus_module_std64k_header = {
 
 //
 
-membus_module_t*
+membus_module_ref
 membus_module_std64k_alloc(void)
 {
     membus_module_std64k_t  *new_module = (membus_module_std64k_t*)malloc(sizeof(membus_module_std64k_t));
     
     if ( new_module ) new_module->header = membus_module_std64k_header;
-    return (membus_module_t*)new_module;
+    return (membus_module_ref)new_module;
 }

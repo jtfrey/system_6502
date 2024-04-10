@@ -1,7 +1,7 @@
 #
 # CMake build configuration for system_6502
 #
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.20)
 
 project(system_6502
         VERSION 1.0.0
@@ -9,22 +9,20 @@ project(system_6502
         LANGUAGES C
     )
 
-option(ENABLE_MEMORY_TEST "Compile the memory test program" OFF)
 option(ENABLE_REGISTERS_TEST "Compile the registers test program" OFF)
 option(ENABLE_ISA_6502_TEST "Compile the ISA 6502 test program" OFF)
 
-option(ENABLE_MEMORY_CACHE "Memory controller caches last 8 bytes read/written" ON)
+option(ENABLE_MEMBUS_CACHE "Memory controller caches last 8 bytes read/written" ON)
+option(ENABLE_MEMBUS_TEST "Compile the memory bus test program" ON)
 option(ENABLE_DISASSEMBLY "Include callbacks to disassemble executed instructions" ON)
-option(ENABLE_MEMORY_WATCHPOINTS "Include memory watchpoint API" ON)
-
 option(DISABLE_JMP_PAGE_BOUNDARY_BUG "Do not include the JMP page wrap-around h/w bug" OFF)
 
 #
 # For disassembly to work, the memory caching must be enabled:
 #
-if (ENABLE_DISASSEMBLY AND NOT ENABLE_MEMORY_CACHE)
-    message(WARNING "Disassembly enabled but memory cache is not; forcing memory cache ON")
-    set(ENABLE_MEMORY_CACHE ON)
+if (ENABLE_DISASSEMBLY AND NOT ENABLE_MEMBUS_CACHE)
+    message(WARNING "Disassembly enabled but membus cache is not; forcing membus cache ON")
+    set(ENABLE_MEMBUS_CACHE ON)
 endif()
 
 #
@@ -89,24 +87,24 @@ set(SYSTEM_6502_VERSION ${system_6502_VERSION})
 configure_file(system_6502_config.h.in system_6502_config.h)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
-if ( ENABLE_MEMORY_TEST )
-    add_executable(memory_test memory.c)
-    target_compile_definitions(memory_test PRIVATE ENABLE_MEMORY_TEST)
-endif ()
+#
+# Build the membus library
+#
+add_subdirectory(membus)
+
+add_executable(system_6502 registers.c isa_6502.c executor.c tui_window.c system_6502.c)
+target_include_directories(system_6502 PRIVATE ${CURSES_INCLUDE_DIRS} membus)
+target_compile_options(system_6502 PRIVATE ${CURSES_CFLAGS})
+target_link_libraries(system_6502 PRIVATE ${CURSES_LIBRARIES} Threads::Threads system_6502_membus)
 
 if ( ENABLE_REGISTERS_TEST )
     add_executable(registers_test registers.c)
     target_compile_definitions(registers_test PRIVATE ENABLE_REGISTERS_TEST)
 endif ()
 
-add_subdirectory(membus)
-
 if ( ENABLE_ISA_6502_TEST )
-    add_executable(isa_6502_test memory.c registers.c isa_6502.c)
+    add_executable(isa_6502_test registers.c isa_6502.c)
+    target_include_directories(isa_6502_test PRIVATE membus)
     target_compile_definitions(isa_6502_test PRIVATE ENABLE_ISA_6502_TEST)
+    target_link_libraries(isa_6502_test PRIVATE system_6502_membus)
 endif ()
-
-add_executable(system_6502 memory.c registers.c isa_6502.c executor.c tui_window.c system_6502.c)
-target_include_directories(system_6502 PRIVATE ${CURSES_INCLUDE_DIRS})
-target_compile_options(system_6502 PRIVATE ${CURSES_CFLAGS})
-target_link_libraries(system_6502 PRIVATE ${CURSES_LIBRARIES} Threads::Threads)

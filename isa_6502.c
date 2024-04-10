@@ -40,19 +40,19 @@ const int isa_6502_addressing_operand_counts[isa_6502_addressing_max] = {
 static inline uint8_t
 __isa_6502_pop(
     registers_t *the_registers,
-    memory_t    *the_memory
+    membus_t    *the_membus
 )
 {
-    return memory_read(the_memory, 0x0100 + (++the_registers->SP & 0x00FF));
+    return membus_read_addr(the_membus, 0x0100 + (++the_registers->SP & 0x00FF));
 }
 
 uint8_t
 isa_6502_pop(
     registers_t *the_registers,
-    memory_t    *the_memory
+    membus_t    *the_membus
 )
 {
-    return __isa_6502_pop(the_registers, the_memory);
+    return __isa_6502_pop(the_registers, the_membus);
 }
 
 //
@@ -60,21 +60,21 @@ isa_6502_pop(
 static inline void
 __isa_6502_push(
     registers_t *the_registers,
-    memory_t    *the_memory,
+    membus_t    *the_membus,
     uint8_t     value
 )
 {
-    memory_write(the_memory, 0x0100 + (the_registers->SP-- & 0x00FF), value);
+    membus_write_addr(the_membus, 0x0100 + (the_registers->SP-- & 0x00FF), value);
 }
 
 void
 isa_6502_push(
     registers_t *the_registers,
-    memory_t    *the_memory,
+    membus_t    *the_membus,
     uint8_t     value
 )
 {
-    __isa_6502_push(the_registers, the_memory, value);
+    __isa_6502_push(the_registers, the_membus, value);
 }
 
 //
@@ -516,13 +516,16 @@ int
 main()
 {
     registers_t                 cpu_registers;
-    memory_t                    ram;
+    membus_t                    *ram = membus_alloc();
     isa_6502_table_t            isa;
     uint16_t                    PC_end = 0x0600 + hello_world_len;
     uint64_t                    total_cycles = 0;
     
     registers_init(&cpu_registers);
-    memory_init(&ram);
+    
+    /* Default 64k RAM */
+    membus_register_module(ram, 0, membus_module_std64k_alloc());
+    
     isa_6502_table_init(&isa, isa_6502_dialect_base);
     
     /* Install program code: */
@@ -532,8 +535,8 @@ main()
     cpu_registers.PC = 0x0600;
     
     printf("REGISTERS:      ");registers_fprintf(&cpu_registers, stdout);
-    printf("MEMORY:         "); memory_fprintf(&ram, stdout, 0x0000, 0x0003);
-    printf("MEMORY:         "); memory_fprintf(&ram, stdout, 0x0200, 0x0204);
+    printf("MEMORY:         "); membus_fprintf(ram, stdout, 0x0000, 0x0003);
+    printf("MEMORY:         "); membus_fprintf(ram, stdout, 0x0200, 0x0204);
     printf("\n");
     
     /* Loop: */
@@ -541,13 +544,13 @@ main()
         /* Read instruction: */
         isa_6502_instr_context_t    instr_context = {
                                             .cycle_count = 0,
-                                            .memory = &ram,
+                                            .membus = ram,
                                             .registers = &cpu_registers
                                         };
         isa_6502_opcode_dispatch_t  *dispatch;
         isa_6502_instr_stage_t      next_stage;
         
-        instr_context.opcode.BYTE = memory_read(&ram, cpu_registers.PC++);
+        instr_context.opcode.BYTE = membus_read_addr(&ram, cpu_registers.PC++);
         printf("FETCHED:        %02hhX => %d %d %d\n", instr_context.opcode.BYTE,
                 instr_context.opcode.FIELDS.A, instr_context.opcode.FIELDS.B, instr_context.opcode.FIELDS.C);
         dispatch = &isa.table[instr_context.opcode.FIELDS.C][instr_context.opcode.FIELDS.A][instr_context.opcode.FIELDS.B];

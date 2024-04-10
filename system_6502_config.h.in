@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <fcntl.h>
+#include <limits.h>
 
 #cmakedefine CURSES_HAVE_NCURSES_H
 #ifdef CURSES_HAVE_NCURSES_H
@@ -38,9 +39,8 @@
 #endif
 
 #cmakedefine ISA_6502_HOST_IS_LE
-#cmakedefine ENABLE_MEMORY_CACHE
+#cmakedefine ENABLE_MEMBUS_CACHE
 #cmakedefine ENABLE_DISASSEMBLY
-#cmakedefine ENABLE_MEMORY_WATCHPOINTS
 #cmakedefine DISABLE_JMP_PAGE_BOUNDARY_BUG
 
 #endif /* __SYSTEM_6502_CONFIG_H__ */
