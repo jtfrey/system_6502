@@ -10,6 +10,8 @@
 #include <fcntl.h>
 #include <limits.h>
 
+#include <pthread.h>
+
 #cmakedefine CURSES_HAVE_NCURSES_H
 #ifdef CURSES_HAVE_NCURSES_H
 #   include "ncurses.h"

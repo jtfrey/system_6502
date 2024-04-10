@@ -6,8 +6,6 @@
 #include "registers.h"
 #include "membus.h"
 #include "isa_6502.h"
-
-#include <pthread.h>
     
 
 /*

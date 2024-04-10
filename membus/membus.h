@@ -246,7 +246,7 @@ void membus_module_release(membus_module_ref module);
 
 typedef struct membus {
     const void      *pre_op, *modules, *post_op;
-    
+    pthread_mutex_t rw_lock;
     uint16_t        nmi_vector, res_vector, irq_vector;
     
 #ifdef ENABLE_MEMBUS_CACHE

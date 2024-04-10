@@ -214,7 +214,8 @@ membus_alloc(void)
 {
     membus_t    *new_bus = (membus_t*)malloc(sizeof(membus_t));
     
-    if ( new_bus ) {
+    if ( new_bus ) {        
+        pthread_mutex_init(&new_bus->rw_lock, NULL);
         new_bus->pre_op = new_bus->modules = new_bus->post_op = NULL;
         new_bus->nmi_vector = 0x0FF0;
         new_bus->res_vector = 0xF00F;
@@ -232,6 +233,7 @@ membus_free(
 {
     membus_module_tier_node_t   *tiers = (membus_module_tier_node_t*)the_membus->modules, *next;
     
+    pthread_mutex_lock(&the_membus->rw_lock);
     if ( the_membus->pre_op ) __membus_module_tier_node_free((membus_module_tier_node_t*)the_membus->pre_op);
     while ( tiers ) {
         next = tiers->link;
@@ -239,6 +241,8 @@ membus_free(
         tiers = next;
     }
     if ( the_membus->post_op ) __membus_module_tier_node_free((membus_module_tier_node_t*)the_membus->post_op);
+    pthread_mutex_unlock(&the_membus->rw_lock);
+    pthread_mutex_destroy(&the_membus->rw_lock);
     free((void*)the_membus);
 }
 
@@ -359,7 +363,7 @@ membus_register_module(
 //
 
 uint8_t
-membus_read_addr(
+__membus_read_addr(
     membus_t    *the_membus,
     uint16_t    addr
 )
@@ -437,10 +441,24 @@ membus_read_addr(
     return value;
 }
 
+uint8_t
+membus_read_addr(
+    membus_t    *the_membus,
+    uint16_t    addr
+)
+{
+    uint8_t     value;
+    
+    pthread_mutex_lock(&the_membus->rw_lock);
+    value = __membus_read_addr(the_membus, addr);
+    pthread_mutex_unlock(&the_membus->rw_lock);
+    return value;
+}
+
 //
 
 void
-membus_write_addr(
+__membus_write_addr(
     membus_t    *the_membus,
     uint16_t    addr,
     uint8_t     value
@@ -515,6 +533,18 @@ membus_write_addr(
 #endif
 }
 
+void
+membus_write_addr(
+    membus_t    *the_membus,
+    uint16_t    addr,
+    uint8_t     value
+)
+{
+    pthread_mutex_lock(&the_membus->rw_lock);
+    __membus_write_addr(the_membus, addr, value);
+    pthread_mutex_unlock(&the_membus->rw_lock);
+}
+
 //
 
 void
@@ -527,7 +557,9 @@ membus_write_byte_to_range(
     uint32_t            addr = r.addr_lo, addr_end = r.addr_lo + r.addr_len;
     
     if ( addr_end > 0x00010000 ) addr_end = 0x0000FFFF;
-    while ( addr < addr_end ) membus_write_addr(the_membus, addr++, value);
+    pthread_mutex_lock(&the_membus->rw_lock);
+    while ( addr < addr_end ) __membus_write_addr(the_membus, addr++, value);
+    pthread_mutex_unlock(&the_membus->rw_lock);
 }
 
 //
@@ -544,10 +576,12 @@ membus_write_word_to_range(
     uint8_t             lo = value & 0x00FF, hi = value >> 8;
     
     if ( addr_end > 0x00010000 ) addr_end = 0x0000FFFF;
+    pthread_mutex_lock(&the_membus->rw_lock);
     while ( addr < addr_end ) {
-        membus_write_addr(the_membus, addr++, (piece ? hi : lo) );
+        __membus_write_addr(the_membus, addr++, (piece ? hi : lo) );
         piece = (piece + 1) % 2;
     }
+    pthread_mutex_unlock(&the_membus->rw_lock);
 }
 
 //
@@ -563,6 +597,7 @@ membus_load_from_fd(
     uint32_t            addr = r.addr_lo, addr_end = r.addr_lo + r.addr_len;
     
     if ( addr_end > 0x00010000 ) addr_end = 0x00010000;
+    pthread_mutex_lock(&the_membus->rw_lock);
     while ( addr < addr_end ) {
         uint8_t         byte_buffer[4096], *p = byte_buffer;
         size_t          read_len = addr_end - addr + 1;
@@ -571,8 +606,9 @@ membus_load_from_fd(
         if ( read_len > sizeof(byte_buffer) ) read_len = sizeof(byte_buffer);
         bytes_read = read(fd, byte_buffer, read_len);
         total_bytes += bytes_read;
-        while ( bytes_read-- > 0 ) membus_write_addr(the_membus, addr++, *p++);
+        while ( bytes_read-- > 0 ) __membus_write_addr(the_membus, addr++, *p++);
     }
+    pthread_mutex_unlock(&the_membus->rw_lock);
     return total_bytes;
 }
 
@@ -589,6 +625,7 @@ membus_load_from_stream(
     uint32_t            addr = r.addr_lo, addr_end = r.addr_lo + r.addr_len;
     
     if ( addr_end > 0x00010000 ) addr_end = 0x00010000;
+    pthread_mutex_lock(&the_membus->rw_lock);
     while ( addr < addr_end ) {
         uint8_t         byte_buffer[4096], *p = byte_buffer;
         size_t          read_len = addr_end - addr + 1;
@@ -597,8 +634,9 @@ membus_load_from_stream(
         if ( read_len > sizeof(byte_buffer) ) read_len = sizeof(byte_buffer);
         bytes_read = fread(byte_buffer, 1, read_len, stream);
         total_bytes += bytes_read;
-        while ( bytes_read-- > 0 ) membus_write_addr(the_membus, addr++, *p++);
+        while ( bytes_read-- > 0 ) __membus_write_addr(the_membus, addr++, *p++);
     }
+    pthread_mutex_unlock(&the_membus->rw_lock);
     return total_bytes;
 }
 
@@ -615,6 +653,7 @@ membus_save_to_fd(
     uint32_t            addr = r.addr_lo, addr_end = r.addr_lo + r.addr_len;
     
     if ( addr_end > 0x00010000 ) addr_end = 0x00010000;
+    pthread_mutex_lock(&the_membus->rw_lock);
     while ( addr < addr_end ) {
         uint8_t         byte_buffer[4096], *p = byte_buffer;
         size_t          write_len = addr_end - addr + 1, xfer_len;
@@ -622,10 +661,11 @@ membus_save_to_fd(
         
         if ( write_len > sizeof(byte_buffer) ) write_len = sizeof(byte_buffer);
         xfer_len = write_len;
-        while ( xfer_len-- > 0 ) *p++ = membus_read_addr(the_membus, addr++);
+        while ( xfer_len-- > 0 ) *p++ = __membus_read_addr(the_membus, addr++);
         bytes_written = write(fd, byte_buffer, write_len);
         total_bytes += bytes_written;
     }
+    pthread_mutex_unlock(&the_membus->rw_lock);
     return total_bytes;
 }
 
@@ -642,6 +682,7 @@ membus_save_to_stream(
     uint32_t            addr = r.addr_lo, addr_end = r.addr_lo + r.addr_len;
     
     if ( addr_end > 0x00010000 ) addr_end = 0x00010000;
+    pthread_mutex_lock(&the_membus->rw_lock);
     while ( addr < addr_end ) {
         uint8_t         byte_buffer[4096], *p = byte_buffer;
         size_t          write_len = addr_end - addr + 1, xfer_len;
@@ -649,10 +690,11 @@ membus_save_to_stream(
         
         if ( write_len > sizeof(byte_buffer) ) write_len = sizeof(byte_buffer);
         xfer_len = write_len;
-        while ( xfer_len-- > 0 ) *p++ = membus_read_addr(the_membus, addr++);
+        while ( xfer_len-- > 0 ) *p++ = __membus_read_addr(the_membus, addr++);
         bytes_written = fwrite(byte_buffer, 1, write_len, stream);
         total_bytes += bytes_written;
     }
+    pthread_mutex_unlock(&the_membus->rw_lock);
     return total_bytes;
 }
 
@@ -672,6 +714,7 @@ membus_fprintf(
     size_t              out_buffer_len;
     int                 is_compact = ((opts & membus_dump_opts_compact) == membus_dump_opts_compact);
     
+    pthread_mutex_lock(&the_membus->rw_lock);
     if ( (opts & membus_dump_opts_8byte_width) == membus_dump_opts_8byte_width ) {
         while ( addr < addr_max ) {
             char    chars[9];
@@ -684,7 +727,7 @@ membus_fprintf(
             out_buffer_ptr += n, out_buffer_len -= n;
 
             while ( (l < 8) && (addr < addr_max) ) {
-                uint8_t     b = membus_read_addr(the_membus, addr++);
+                uint8_t     b = __membus_read_addr(the_membus, addr++);
                 
                 n = snprintf(out_buffer_ptr, out_buffer_len, "%02X ", b);
                 out_buffer_ptr += n, out_buffer_len -= n;
@@ -712,7 +755,7 @@ membus_fprintf(
             out_buffer_ptr += n, out_buffer_len -= n;
 
             while ( (l < 16) && (addr < addr_max) ) {
-                uint8_t     b = membus_read_addr(the_membus, addr++);
+                uint8_t     b = __membus_read_addr(the_membus, addr++);
                 
                 if ( l == 8 ) {
                     n = snprintf(out_buffer_ptr, out_buffer_len, is_compact ? " " : "   ");
@@ -733,6 +776,7 @@ membus_fprintf(
             n_tot += fprintf(stream, "%s\n", out_buffer);
         }
     }
+    pthread_mutex_unlock(&the_membus->rw_lock);
     return n_tot;
 }
 
