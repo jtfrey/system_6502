@@ -8,6 +8,7 @@ set(system_6502_membus_SOURCES
         membus_module_byte.c
         membus_module_word.c
         membus_module_watchpoints.c
+        membus_module_mirror.c
     )
 
 add_library(system_6502_membus STATIC ${system_6502_membus_SOURCES})
