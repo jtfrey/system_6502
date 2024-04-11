@@ -311,6 +311,12 @@ void membus_write_byte_to_range(membus_t *the_membus, memory_addr_range_t r, uin
  */
 void membus_write_word_to_range(membus_t *the_membus, memory_addr_range_t r, uint16_t value);
 
+
+
+void membus_copy_out_bytes(membus_t *the_membus, uint8_t *bytes_ptr, memory_addr_range_t r);
+void membus_copy_in_bytes(membus_t *the_membus, const uint8_t *bytes_ptr, memory_addr_range_t r);
+
+
 /*
  * @function membus_load_from_fd
  *

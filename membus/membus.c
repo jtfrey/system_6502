@@ -586,6 +586,40 @@ membus_write_word_to_range(
 
 //
 
+void
+membus_copy_out_bytes(
+    membus_t            *the_membus,
+    uint8_t             *bytes_ptr,
+    memory_addr_range_t r
+)
+{
+    uint32_t            addr = r.addr_lo, addr_end = r.addr_lo + r.addr_len;
+    
+    if ( addr_end > 0x00010000 ) addr_end = 0x0000FFFF;
+    pthread_mutex_lock(&the_membus->rw_lock);
+    while ( addr < addr_end ) *bytes_ptr++ = __membus_read_addr(the_membus, addr++);
+    pthread_mutex_unlock(&the_membus->rw_lock);
+}
+
+//
+
+void
+membus_copy_in_bytes(
+    membus_t            *the_membus,
+    const uint8_t       *bytes_ptr,
+    memory_addr_range_t r
+)
+{
+    uint32_t            addr = r.addr_lo, addr_end = r.addr_lo + r.addr_len;
+    
+    if ( addr_end > 0x00010000 ) addr_end = 0x0000FFFF;
+    pthread_mutex_lock(&the_membus->rw_lock);
+    while ( addr < addr_end ) __membus_write_addr(the_membus, addr++, *bytes_ptr++);
+    pthread_mutex_unlock(&the_membus->rw_lock);
+}
+
+//
+
 ssize_t
 membus_load_from_fd(
     membus_t            *the_membus,

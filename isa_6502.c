@@ -473,6 +473,8 @@ isa_6502_table_lookup_dispatch(
 
 #ifdef ENABLE_ISA_6502_TEST
 
+#include "membus_module_std64k.h"
+
 #include <stdio.h>
 
 /*
@@ -548,14 +550,14 @@ main()
     isa_6502_table_init(&isa, isa_6502_dialect_base);
     
     /* Install program code: */
-    memcpy(&ram.RAM.PAGES[6][0], hello_world, hello_world_len);
+    membus_copy_in_bytes(ram, hello_world, memory_addr_range_with_lo_and_len(0x0600, hello_world_len));
     
     /* Load program counter with 0x0600: */
     cpu_registers.PC = 0x0600;
     
     printf("REGISTERS:      ");registers_fprintf(&cpu_registers, stdout);
-    printf("MEMORY:         "); membus_fprintf(ram, stdout, 0x0000, 0x0003);
-    printf("MEMORY:         "); membus_fprintf(ram, stdout, 0x0200, 0x0204);
+    printf("MEMORY:         "); membus_fprintf(ram, stdout, 0, memory_addr_range_with_lo_and_hi(0x0000, 0x0003));
+    printf("MEMORY:         "); membus_fprintf(ram, stdout, 0, memory_addr_range_with_lo_and_hi(0x0200, 0x0204));
     printf("\n");
     
     /* Loop: */
@@ -569,7 +571,7 @@ main()
         isa_6502_opcode_dispatch_t  *dispatch;
         isa_6502_instr_stage_t      next_stage;
         
-        instr_context.opcode.BYTE = membus_read_addr(&ram, cpu_registers.PC++);
+        instr_context.opcode.BYTE = membus_read_addr(ram, cpu_registers.PC++);
         printf("FETCHED:        %02hhX => %d %d %d\n", instr_context.opcode.BYTE,
                 instr_context.opcode.FIELDS.A, instr_context.opcode.FIELDS.B, instr_context.opcode.FIELDS.C);
         dispatch = &isa.table[instr_context.opcode.FIELDS.C][instr_context.opcode.FIELDS.A][instr_context.opcode.FIELDS.B];
@@ -584,8 +586,8 @@ main()
         } while ( next_stage == isa_6502_instr_stage_next_cycle);
         printf("ELAPSED CYCLES: %llu\n", instr_context.cycle_count);
         printf("REGISTERS:      ");registers_fprintf(&cpu_registers, stdout);
-        printf("MEMORY:         "); membus_fprintf(&ram, stdout, 0x0000, 0x0003);
-        printf("MEMORY:         "); membus_fprintf(&ram, stdout, 0x0200, 0x0204);
+        printf("MEMORY:         "); membus_fprintf(ram, stdout, 0, memory_addr_range_with_lo_and_hi(0x0000, 0x0003));
+        printf("MEMORY:         "); membus_fprintf(ram, stdout, 0, memory_addr_range_with_lo_and_hi(0x0200, 0x0204));
         printf("\n");
     }
     printf("TOTAL CYCLES:   %llu\n", total_cycles);
