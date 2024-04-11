@@ -127,6 +127,7 @@ memory_addr_range_t* memory_addr_range_intersection(memory_addr_range_t *r1, mem
 memory_addr_range_t* memory_addr_range_union(memory_addr_range_t *r1, memory_addr_range_t *r2, memory_addr_range_t *rOut);
 
 
+
 /*
  * @typedef membus_module_ref
  *
@@ -243,12 +244,45 @@ void membus_module_release(membus_module_ref module);
 
 
 
-
+/*
+ * @typedef membus_t
+ *
+ * Data structure representing a membus object.  Fields are:
+ *
+ *     - pre_op: opaque reference to the chain of membus modules that
+ *          will be called invariably ahead of all other modules on the
+ *          bus
+ *     - modules: opaque reference to the chain of tiers of membus
+ *          modules registered on the bus
+ *     - post_op: opaque reference to the chain of membus modules that
+ *          will be called invariably after all other modules on the
+ *          bus
+ *     - rw_lock: mutex used to coordinate multithreaded access to the
+ *          bus
+ *      - nmi_vector: special case, the word at 0xFFFA
+ *      - res_vector: special case, the word at 0xFFFC
+ *      - irq_vector: special case, the word at 0xFFFE
+ *
+ * If membus caching is enabled at compile time the data structure
+ * will also include the read- and write-caches and their indices:
+ *
+ *      - rcache_idx: next index in the read cache to which data will
+ *          be pushed
+ *      - wcache_idx: next index in the write cache to which data will
+ *          be pushed
+ *      - rcache: cyclic buffer of the last 8 bytes successfully read
+ *          from the bus
+ *      - wcache: cyclic buffer of the last 8 bytes successfully written
+ *          to the bus
+ */
 typedef struct membus {
     const void      *pre_op, *modules, *post_op;
-    pthread_mutex_t rw_lock;
     uint16_t        nmi_vector, res_vector, irq_vector;
-    
+
+#ifdef ENABLE_MEMBUS_LOCKS
+    pthread_mutex_t rw_lock;
+#endif
+
 #ifdef ENABLE_MEMBUS_CACHE
     uint8_t         rcache_idx, wcache_idx;
     uint8_t         rcache[8], wcache[8];
@@ -257,16 +291,67 @@ typedef struct membus {
 
 
 #ifdef ENABLE_MEMBUS_CACHE
-#   define membus_rcache_push(M, B)  (M)->rcache[M->rcache_idx++ % 8] = (B)
-#   define membus_rcache_peek(M)     (M)->rcache[M->rcache_idx % 8]
-#   define membus_rcache_pop(M)      (M)->rcache[--M->rcache_idx % 8]
-
-#   define membus_wcache_push(M, B)  (M)->wcache[M->wcache_idx++ % 8] = (B)
-#   define membus_wcache_peek(M)     (M)->wcache[M->wcache_idx % 8]
-#   define membus_wcache_pop(M)      (M)->wcache[--M->wcache_idx % 8]
+/*
+ * @defined membus_rcache_push
+ *
+ * Push the byte B to the read cache of membus object M.
+ */
+#   define membus_rcache_push(M, B)  (M)->rcache[(M)->rcache_idx++ % 8] = (B)
+/*
+ * @defined membus_rcache_peek
+ *
+ * Returns the last-pushed byte of the read cache of membus object M
+ * without moving the cache pointer.
+ */
+#   define membus_rcache_peek(M)     (M)->rcache[((M)->rcache_idx - 1) % 8]
+/*
+ * @defined membus_rcache_pop
+ *
+ * Removes and returns the last-pushed byte of the read cache of membus
+ * object M.
+ */
+#   define membus_rcache_pop(M)      (M)->rcache[--(M)->rcache_idx % 8]
+/*
+ * @defined membus_wcache_push
+ *
+ * Push the byte B to the write cache of membus object M.
+ */
+#   define membus_wcache_push(M, B)  (M)->wcache[(M)->wcache_idx++ % 8] = (B)
+/*
+ * @defined membus_wcache_peek
+ *
+ * Returns the last-pushed byte of the write cache of membus object M
+ * without moving the cache pointer.
+ */
+#   define membus_wcache_peek(M)     (M)->wcache[((M)->wcache_idx - 1) % 8]
+/*
+ * @defined membus_wcache_pop
+ *
+ * Removes and returns the last-pushed byte of the write cache of membus
+ * object M.
+ */
+#   define membus_wcache_pop(M)      (M)->wcache[--(M)->wcache_idx % 8]
 #endif
 
+
+/*
+ * @function membus_alloc
+ *
+ * Allocate and initialize a new membus object.  The bus initially contains
+ * no modules and effectively only handles the three special jump vector
+ * words (NMI, RES, IRQ).
+ *
+ * A variety of unique membus modules can be allocated and registered with
+ * a membus object in order to provide a virtualized composite memory space.
+ */
 membus_t* membus_alloc(void);
+
+/*
+ * @function membus_free
+ *
+ * Dispose of the_membus.  All membus module references registered with
+ * the_membus are released (via membus_module_release()).
+ */
 void membus_free(membus_t *the_membus);
 
 /*
@@ -288,12 +373,28 @@ void membus_free(membus_t *the_membus);
  */
 #define MEMBUS_TIER_POST_OP INT_MAX
 
+/*
+ * @function membus_register_module
+ *
+ * Register a membus module object with the_membus in the specifed tier.
+ * A reference to the_module is retained by the_membus (via the
+ * membus_module_retain() function).
+ */
 bool membus_register_module(membus_t *the_membus, int tier, membus_module_ref the_module);
 
+/*
+ * @function membus_read_addr
+ *
+ * Returns the byte present at memory address addr in the_membus.
+ */
 uint8_t membus_read_addr(membus_t *the_membus, uint16_t addr);
+
+/*
+ * @function membus_write_addr
+ *
+ * Stores the value to memory address addr in the_membus.
+ */
 void membus_write_addr(membus_t *the_membus, uint16_t addr, uint8_t value);
-
-
 
 /*
  * @function membus_write_byte_to_range
@@ -311,11 +412,23 @@ void membus_write_byte_to_range(membus_t *the_membus, memory_addr_range_t r, uin
  */
 void membus_write_word_to_range(membus_t *the_membus, memory_addr_range_t r, uint16_t value);
 
-
-
+/*
+ * @function membus_copy_out_bytes
+ *
+ * Copy all bytes from the_membus in the given address range r to the buffer
+ * pointed to by bytes_ptr.  The buffer is assumed to be at least as large as
+ * the length of the address range r.
+ */
 void membus_copy_out_bytes(membus_t *the_membus, uint8_t *bytes_ptr, memory_addr_range_t r);
-void membus_copy_in_bytes(membus_t *the_membus, const uint8_t *bytes_ptr, memory_addr_range_t r);
 
+/*
+ * @function membus_copy_in_bytes
+ *
+ * Copy bytes from the buffer pointed to by bytes_ptr to the given address range
+ * of the_membus.  The buffer is assumed to be at least as large as the length of
+ * the address range r.
+ */
+void membus_copy_in_bytes(membus_t *the_membus, const uint8_t *bytes_ptr, memory_addr_range_t r);
 
 /*
  * @function membus_load_from_fd
@@ -358,8 +471,6 @@ ssize_t membus_save_to_fd(membus_t *the_membus, memory_addr_range_t r, int fd);
  */
 ssize_t membus_save_to_stream(membus_t *the_membus, memory_addr_range_t r, FILE *stream);
 
-
-
 /*
  * @enum Membus dump options
  *
@@ -387,6 +498,5 @@ typedef unsigned int membus_dump_opts_t;
  * in the address range [addr_start, addr_end] of the_membus memory array.
  */
 int membus_fprintf(membus_t *the_membus, FILE *stream, membus_dump_opts_t opts, memory_addr_range_t addr_range);
-
 
 #endif /* __MEMBUS_H__ */

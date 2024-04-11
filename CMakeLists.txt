@@ -12,6 +12,7 @@ project(system_6502
 option(ENABLE_REGISTERS_TEST "Compile the registers test program" OFF)
 option(ENABLE_ISA_6502_TEST "Compile the ISA 6502 test program" OFF)
 
+option(ENABLE_MEMBUS_LOCKS "Memory controller is thread-safe" ON)
 option(ENABLE_MEMBUS_CACHE "Memory controller caches last 8 bytes read/written" ON)
 option(ENABLE_MEMBUS_TEST "Compile the memory bus test program" ON)
 option(ENABLE_DISASSEMBLY "Include callbacks to disassemble executed instructions" ON)
@@ -22,7 +23,7 @@ option(DISABLE_JMP_PAGE_BOUNDARY_BUG "Do not include the JMP page wrap-around h/
 #
 if (ENABLE_DISASSEMBLY AND NOT ENABLE_MEMBUS_CACHE)
     message(WARNING "Disassembly enabled but membus cache is not; forcing membus cache ON")
-    set(ENABLE_MEMBUS_CACHE ON)
+    set(ENABLE_MEMBUS_CACHE ON CACHE BOOL "Memory controller caches last 8 bytes read/written" FORCE)
 endif()
 
 #
