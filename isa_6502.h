@@ -113,7 +113,7 @@ enum {
     /**/
     isa_6502_instr_stage_nmi = 1 << 11,
     isa_6502_instr_stage_irq = 1 << 12,
-    isa_6502_instr_stage_illegal_instruction = 1 << 32,
+    isa_6502_instr_stage_illegal_instruction = 1 << 31,
     /**/
     isa_6502_instr_stage_all = 0xFFFFFFFF
 };
