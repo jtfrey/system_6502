@@ -1,9 +1,5 @@
 
-isa_6502_instr_stage_t
-__isa_6502_RTI(
-    isa_6502_instr_context_t    *opcode_context,
-    isa_6502_instr_stage_t      at_stage
-)
+ISA_6502_INSTR(RTI)
 {
     static uint8_t  *PC_ptr;
     static uint8_t  ALU;
@@ -46,12 +42,7 @@ __isa_6502_RTI(
     return at_stage;
 }
 
-int
-__isa_6502_disasm_RTI(
-    isa_6502_instr_context_t    *opcode_context,
-    char                        *buffer,
-    int                         buffer_len
-)
+ISA_6502_DISASM(RTI)
 {
 #ifdef ENABLE_DISASSEMBLY
     return snprintf(buffer, buffer_len, "RTI [$%04hX]", opcode_context->registers->PC);

@@ -1,9 +1,5 @@
 
-isa_6502_instr_stage_t
-__isa_6502_BCS(
-    isa_6502_instr_context_t    *opcode_context,
-    isa_6502_instr_stage_t      at_stage
-)
+ISA_6502_INSTR(BCS)
 {
     static uint16_t     ADDR = 0x0000;
     static uint8_t      DELTA;
@@ -38,12 +34,7 @@ __isa_6502_BCS(
     return at_stage;
 }
 
-int
-__isa_6502_disasm_BCS(
-    isa_6502_instr_context_t    *opcode_context,
-    char                        *buffer,
-    int                         buffer_len
-)
+ISA_6502_DISASM(BCS)
 {
 #ifdef ENABLE_DISASSEMBLY
     uint8_t                     operand = membus_rcache_pop(opcode_context->memory);

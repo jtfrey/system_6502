@@ -108,3 +108,4 @@ if ( ENABLE_ISA_6502_TEST )
     target_compile_definitions(isa_6502_test PRIVATE ENABLE_ISA_6502_TEST)
     target_link_libraries(isa_6502_test PRIVATE system_6502_membus)
 endif ()
+

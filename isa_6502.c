@@ -79,6 +79,25 @@ isa_6502_push(
 
 //
 
+#define ISA_6502_INSTR(OPCODE) \
+static isa_6502_instr_stage_t \
+__isa_6502_ ## OPCODE( \
+    isa_6502_instr_context_t    *opcode_context, \
+    isa_6502_instr_stage_t      at_stage \
+) \
+
+//
+
+#define ISA_6502_DISASM(OPCODE) \
+static int \
+__isa_6502_disasm_ ## OPCODE( \
+    isa_6502_instr_context_t    *opcode_context, \
+    char                        *buffer, \
+    int                         buffer_len \
+)
+
+//
+
 #include "isa_6502/ADC.c"
 #include "isa_6502/AND.c"
 #include "isa_6502/ASL.c"

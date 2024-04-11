@@ -1,9 +1,5 @@
 
-isa_6502_instr_stage_t
-__isa_6502_LDA(
-    isa_6502_instr_context_t    *opcode_context,
-    isa_6502_instr_stage_t      at_stage
-)
+ISA_6502_INSTR(LDA)
 {
     static uint16_t ADDR = 0x0000, ADDR_pre_index;
     static uint8_t  *ADDR_ptr, *ALU_ptr;
@@ -127,12 +123,7 @@ __isa_6502_LDA(
     return at_stage;
 }
 
-int
-__isa_6502_disasm_LDA(
-    isa_6502_instr_context_t    *opcode_context,
-    char                        *buffer,
-    int                         buffer_len
-)
+ISA_6502_DISASM(LDA)
 {
 #ifdef ENABLE_DISASSEMBLY
     uint8_t                     value, operand1, operand2, operand3;

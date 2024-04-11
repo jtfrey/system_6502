@@ -1,9 +1,5 @@
 
-isa_6502_instr_stage_t
-__isa_6502_ASL(
-    isa_6502_instr_context_t    *opcode_context,
-    isa_6502_instr_stage_t      at_stage
-)
+ISA_6502_INSTR(ASL)
 {
     static uint16_t ADDR = 0x0000;
     static uint8_t  *ADDR_ptr;
@@ -95,12 +91,7 @@ __isa_6502_ASL(
     return at_stage;
 }
 
-int
-__isa_6502_disasm_ASL(
-    isa_6502_instr_context_t    *opcode_context,
-    char                        *buffer,
-    int                         buffer_len
-)
+ISA_6502_DISASM(ASL)
 {
 #ifdef ENABLE_DISASSEMBLY
     uint8_t                     value1, value2, operand1, operand2;
