@@ -563,7 +563,7 @@ main()
         /* Read instruction: */
         isa_6502_instr_context_t    instr_context = {
                                             .cycle_count = 0,
-                                            .membus = ram,
+                                            .memory = ram,
                                             .registers = &cpu_registers
                                         };
         isa_6502_opcode_dispatch_t  *dispatch;
@@ -584,8 +584,8 @@ main()
         } while ( next_stage == isa_6502_instr_stage_next_cycle);
         printf("ELAPSED CYCLES: %llu\n", instr_context.cycle_count);
         printf("REGISTERS:      ");registers_fprintf(&cpu_registers, stdout);
-        printf("MEMORY:         "); memory_fprintf(&ram, stdout, 0x0000, 0x0003);
-        printf("MEMORY:         "); memory_fprintf(&ram, stdout, 0x0200, 0x0204);
+        printf("MEMORY:         "); membus_fprintf(&ram, stdout, 0x0000, 0x0003);
+        printf("MEMORY:         "); membus_fprintf(&ram, stdout, 0x0200, 0x0204);
         printf("\n");
     }
     printf("TOTAL CYCLES:   %llu\n", total_cycles);
