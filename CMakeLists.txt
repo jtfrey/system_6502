@@ -11,6 +11,7 @@ project(system_6502
 
 option(ENABLE_REGISTERS_TEST "Compile the registers test program" OFF)
 option(ENABLE_ISA_6502_TEST "Compile the ISA 6502 test program" OFF)
+option(ENABLE_NES_MOCKUP "Compile the NES mockup program" OFF)
 
 option(ENABLE_EXECUTOR_LOCKS "Executor is thread-safe" ON)
 option(ENABLE_MEMBUS_LOCKS "Memory controller is thread-safe" ON)
@@ -111,3 +112,8 @@ if ( ENABLE_ISA_6502_TEST )
     target_link_libraries(isa_6502_test PRIVATE system_6502_membus)
 endif ()
 
+if ( ENABLE_NES_MOCKUP ) 
+    add_executable(nes_mockup nes_mockup.c)
+    target_include_directories(nes_mockup PRIVATE libmembus)
+    target_link_libraries(nes_mockup PRIVATE Threads::Threads system_6502_membus)
+endif ()
