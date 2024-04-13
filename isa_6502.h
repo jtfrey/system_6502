@@ -38,22 +38,22 @@ isa_6502_opcode_null(void)
  * Enumerates the 6502 operand addressing modes.
  */
 enum {
-    isa_6502_addressing_undefined = -1,
-    isa_6502_addressing_accumulator = 0,
-    isa_6502_addressing_absolute,
-    isa_6502_addressing_absolute_x_indexed,
-    isa_6502_addressing_absolute_y_indexed,
-    isa_6502_addressing_immediate,
-    isa_6502_addressing_implied,
-    isa_6502_addressing_indirect,
-    isa_6502_addressing_x_indexed_indirect,
-    isa_6502_addressing_indirect_y_indexed,
-    isa_6502_addressing_relative,
-    isa_6502_addressing_zeropage,
-    isa_6502_addressing_zeropage_x_indexed,
-    isa_6502_addressing_zeropage_y_indexed,
-    isa_6502_addressing_zeropage_indirect,              /* 65C02 */
-    isa_6502_addressing_absolute_x_indexed_indirect,    /* 65C02 */
+    isa_6502_addressing_undefined = -1,                 /* Used for illegal opcodes     */
+    isa_6502_addressing_accumulator = 0,                /* ADC A                        */
+    isa_6502_addressing_absolute,                       /* ADC $XXXX                    */
+    isa_6502_addressing_absolute_x_indexed,             /* ADC $XXXX,X                  */
+    isa_6502_addressing_absolute_y_indexed,             /* ADC $XXXX,Y                  */
+    isa_6502_addressing_immediate,                      /* ADC #$XX                     */
+    isa_6502_addressing_implied,                        /* TXA                          */
+    isa_6502_addressing_indirect,                       /* ADC ($XXXX)                  */
+    isa_6502_addressing_x_indexed_indirect,             /* ADC ($XXXX,X)                */
+    isa_6502_addressing_indirect_y_indexed,             /* ADC ($XXXX),Y                */
+    isa_6502_addressing_relative,                       /* BEQ *±N                     */
+    isa_6502_addressing_zeropage,                       /* ADC $XX                      */
+    isa_6502_addressing_zeropage_x_indexed,             /* ADC $XX,X                    */
+    isa_6502_addressing_zeropage_y_indexed,             /* ADC $XX,Y                    */
+    isa_6502_addressing_zeropage_indirect,              /* ADC ($XX)              65C02 */
+    isa_6502_addressing_absolute_x_indexed_indirect,    /* ADC ($XXXX,X)          65C02 */
     isa_6502_addressing_max
 };
 
@@ -192,7 +192,9 @@ typedef isa_6502_opcode_block_a_t isa_6502_opcode_blocks_t[4];
 /*
  * @typedef isa_6502_table_t
  *
- * Data structure that holds a 6502 instruction dispatch table.
+ * Data structure that holds a 6502 instruction dispatch table
+ * and pointers to the functions that handle the NMI, IRQ, and
+ * RESET actions.
  */
 typedef struct isa_table {
     isa_6502_opcode_blocks_t        table;
@@ -259,7 +261,30 @@ void isa_6502_table_free(isa_6502_table_t *isa_table);
  */
 isa_6502_opcode_dispatch_t* isa_6502_table_lookup_dispatch(isa_6502_table_t *isa_table, isa_6502_opcode_t *opcode);
 
+/*
+ * @function isa_6502_pop
+ *
+ * Remove the last-pushed value from the stack managed by the_registers
+ * and stored in the_membus memory array.
+ *
+ * This function is also not necessarily thread-safe w.r.t. an instruction
+ * pipeline moving through the_registers and the_memory.  Only use this
+ * function if you're absolutely sure you know what you're doing, as it
+ * could alter the functioning of running code!
+ */
 uint8_t isa_6502_pop(registers_t *the_registers, membus_t *the_membus);
+
+/*
+ * @function isa_6502_push
+ *
+ * Add the given value to the stack managed by the_registers and stored
+ * in the_membus memory array.
+ *
+ * This function is also not necessarily thread-safe w.r.t. an instruction
+ * pipeline moving through the_registers and the_memory.  Only use this
+ * function if you're absolutely sure you know what you're doing, as it
+ * could alter the functioning of running code!
+ */
 void isa_6502_push(registers_t *the_registers, membus_t *the_membus, uint8_t value);
 
 #endif /* __ISA_6502_H__ */

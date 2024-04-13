@@ -37,7 +37,7 @@ ISA_65C02_DISASM(BRA)
 #ifdef ENABLE_DISASSEMBLY
     uint8_t                     operand = membus_rcache_pop(opcode_context->memory);
     
-    return snprintf(buffer, buffer_len, "BRA %hhd", *((int8_t*)&operand));
+    return snprintf(buffer, buffer_len, "BRA *%+hhd", *((int8_t*)&operand));
 #else
     return 0;
 #endif

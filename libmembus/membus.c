@@ -671,6 +671,8 @@ membus_load_from_fd(
         
         if ( read_len > sizeof(byte_buffer) ) read_len = sizeof(byte_buffer);
         bytes_read = read(fd, byte_buffer, read_len);
+        if ( bytes_read <= 0 ) break;
+        
         total_bytes += bytes_read;
         while ( bytes_read-- > 0 ) __membus_write_addr(the_membus, addr++, *p++);
     }
@@ -703,6 +705,8 @@ membus_load_from_stream(
         
         if ( read_len > sizeof(byte_buffer) ) read_len = sizeof(byte_buffer);
         bytes_read = fread(byte_buffer, 1, read_len, stream);
+        if ( bytes_read <= 0 ) break;
+        
         total_bytes += bytes_read;
         while ( bytes_read-- > 0 ) __membus_write_addr(the_membus, addr++, *p++);
     }

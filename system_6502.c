@@ -74,9 +74,10 @@ const struct option cli_options[] = {
         { "verbose",    no_argument,            NULL,   'v' },
         { "quiet",      no_argument,            NULL,   'q' },
         { "irq+nmi",    no_argument,            NULL,   '1' },
+        { "isa",        required_argument,      NULL,   'i' },
         { NULL,         no_argument,            NULL,    0  }
     };
-const char *cli_options_str = "hVl:s:p:d:nrbx:vq1";
+const char *cli_options_str = "hVl:s:p:d:nrbx:vq1i:";
 
 //
 
@@ -105,6 +106,7 @@ usage(
         "  execution options:\n"
         "\n"
         "    --new-vm/-n                    destroy and recreate the VM\n"
+        "    --isa/-i <isa-dialect>         choose the 6502 dialect; default is 6502\n"
         "    --reset/-r                     reset the virtual machine\n"
         "    --boot/-b                      execute a boot from the RES vector\n"
         "    --exec/-x <mem-spec>           execute instructions in the specified\n"
@@ -120,6 +122,7 @@ usage(
         "    <file-spec> = <file-path>@<mem-spec>\n"
         "    <byte-word> = $XX | $XXXX | 0xXX | 0xXXXX\n"
         "    <fill-spec> = <byte-word>@<mem-spec>\n"
+        "    <isa-dialect> = 6502 | 65C02\n"
         "\n",
         exe
     );
@@ -371,6 +374,26 @@ parse_fill_spec(
 
 //
 
+const char*
+parse_isa_dialect(
+    const char*         s,
+    isa_6502_dialect_t  *dialect
+)
+{
+    if ( strcmp(s, "6502") == 0 ) {
+        *dialect = isa_6502_dialect_base;
+        return s + 4;
+    }
+    if ( strcasecmp(s, "65C02") == 0 ) {
+        *dialect = isa_6502_dialect_65C02;
+        return s + 5;
+    }
+    fprintf(stderr, "WARNING:  invalid 6502 dialect: %s\n", s);
+    return NULL;
+}
+
+//
+
 void*
 tui_input_thread_run(
     void    *context
@@ -409,11 +432,14 @@ main(
 {
     int                         rc = 0, optch;
     executor_t                  *the_vm = executor_alloc_with_default_components();
+    isa_6502_dialect_t          the_dialect = isa_6502_dialect_base;
     executor_stage_callback_t   exec_callback = our_executor_stage_callback;
     isa_6502_instr_stage_t      exec_callback_event_mask = isa_6502_instr_stage_all;
     pthread_t                   tui_input_thread;
     
     pthread_create(&tui_input_thread, NULL, tui_input_thread_run, &the_vm);
+    
+    isa_6502_table_init(the_vm->isa, the_dialect);
     
     while ( (optch = getopt_long(argc, argv, cli_options_str, cli_options, NULL)) != -1 ) {
         switch ( optch ) {
@@ -430,6 +456,7 @@ main(
                 executor_free(the_vm);
                 printf("INFO:  ...starting a new VM\n");
                 the_vm = executor_alloc_with_default_components();
+                isa_6502_table_init(the_vm->isa, the_dialect);
                 break;
             
             case 'r':
@@ -568,6 +595,12 @@ main(
                 }
                 break;
             }
+            
+            case 'i':
+                if ( parse_isa_dialect(optarg, &the_dialect) ) {
+                    isa_6502_table_init(the_vm->isa, the_dialect);
+                }
+                break;
         }
     }
     return rc;
