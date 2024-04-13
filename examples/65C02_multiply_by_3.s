@@ -15,11 +15,11 @@ Delay:      DEX
             LDY #$00
             LDX #$00        ; Initialize the array of 256
 InitArray:  TYA             ; integers -- the TYA is shorter
-		    STA Array,X     ; than an LDA #$00
-		    INY
-		    INX
-		    INX
-		    BNE InitArray
+            STA Array,X     ; than an LDA #$00
+            INY
+            INX
+            INX
+            BNE InitArray
 
             LDX #$00        ; Multiply each number by 2
 MultLoop:   JSR Times3      ; Unroll the loop to do 4 operations
