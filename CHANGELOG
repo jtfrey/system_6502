@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - NMI/IRQ states added to executor
     - When set, execution pipeline is hijacked and NMI/IRQ callback is cycled
 - 65C02 ISA implementation and dispatch table added
+- DMA interface added to executor
 
 
 ## [1.0.0] - 2024-03-26

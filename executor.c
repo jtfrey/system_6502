@@ -14,6 +14,8 @@ enum {
     //
     executor_flags_nmi_is_set = 1 << 1,
     executor_flags_irq_is_set = 1 << 2,
+    executor_flags_dma_is_set = 1 << 3,
+    executor_flags_exec_stop = 1 << 4
 };
 
 executor_t*
@@ -103,22 +105,12 @@ executor_hard_reset(
     /* Reset registers */
     registers_reset(the_executor->registers);
     
+    /* Drop any internal state: */
+    the_executor->flags &= ~(executor_flags_nmi_is_set | executor_flags_irq_is_set | executor_flags_dma_is_set | executor_flags_exec_stop);
+    
 #ifdef ENABLE_EXECUTOR_LOCKS
     pthread_mutex_unlock(&the_executor->state_lock);
 #endif
-}
-
-//
-
-uint64_t
-executor_launch_at_address(
-    executor_t                  *the_executor,
-    executor_stage_callback_t   callback_fn,
-    isa_6502_instr_stage_t      callback_stage_mask,
-    uint16_t                    start_addr
-)
-{
-    return executor_launch_at_address_range(the_executor, callback_fn, callback_stage_mask, start_addr, 0xFFFF);
 }
 
 //
@@ -185,12 +177,12 @@ executor_stage_callback_default(
 //
 
 uint64_t
-executor_launch_at_address_range(
+__executor_launch(
     executor_t                  *the_executor,
     executor_stage_callback_t   callback_fn,
     isa_6502_instr_stage_t      callback_stage_mask,
-    uint16_t                    start_addr,
-    uint16_t                    end_addr
+    memory_addr_range_t         addr_range,
+    uint16_t                    PC
 )
 {
     #define REGISTERS           the_executor->registers
@@ -201,22 +193,29 @@ executor_launch_at_address_range(
     char                        disasm_buffer[64];
 #endif
     uint64_t                    total_cycles = 0;
-    uint32_t                    PC_end = end_addr;
+    uint32_t                    PC_end = (uint32_t)addr_range.addr_lo + (uint32_t)addr_range.addr_len;
+    bool                        is_in_dma = false, is_dma_started, is_dma_copyout;
+    uint32_t                    dma_addr_hi;
+    uint16_t                    dma_byte_index;
+    uint8_t                     dma_next_byte;
     
 #ifdef ENABLE_EXECUTOR_LOCKS
     pthread_mutex_lock(&the_executor->state_lock);
 #endif
+
+    /* Drop all internal state (IRQ raised, NMI raised, exit set, DMA set, etc.) */
+    the_executor->flags &= ~(executor_flags_nmi_is_set | executor_flags_irq_is_set | executor_flags_dma_is_set | executor_flags_exec_stop);
     
     /* Load the starting address into the PC */
     if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_pre_load_PC) )
         callback_fn(the_executor, isa_6502_instr_stage_pre_load_PC,
                         isa_6502_opcode_null(), isa_6502_addressing_undefined, NULL, 0, NULL, 0);
-    REGISTERS->PC = start_addr;
+    REGISTERS->PC = PC;
     if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_post_load_PC) )
         callback_fn(the_executor, isa_6502_instr_stage_post_load_PC,
                         isa_6502_opcode_null(), isa_6502_addressing_undefined, NULL, 0, NULL, 0);
     
-    while ( REGISTERS->PC < PC_end ) {
+    while ( ! (the_executor->flags & executor_flags_exec_stop) && ((uint32_t)REGISTERS->PC < PC_end) ) {
         isa_6502_instr_context_t    instr_context = {
                                             .cycle_count = 0,
                                             .memory = MEMORY,
@@ -224,7 +223,7 @@ executor_launch_at_address_range(
                                         };
         isa_6502_opcode_t           *opcode_ptr = &instr_context.opcode;
         isa_6502_opcode_dispatch_t  *dispatch;
-        isa_6502_instr_stage_t      next_stage;
+        isa_6502_instr_stage_t      next_stage, saved_stage;
         
         /* Read the opcode */
         if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_pre_fetch_opcode) )
@@ -258,14 +257,75 @@ executor_launch_at_address_range(
         
         /* Loop through any additional cycles the instruction requires: */
         do {
-            if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_pre_next_cycle) )
-                callback_fn(the_executor, isa_6502_instr_stage_pre_next_cycle,
-                                instr_context.opcode, dispatch->addressing_mode, dispatch, instr_context.cycle_count, NULL, 0);
-            next_stage = dispatch->exec_fn(&instr_context, isa_6502_instr_stage_next_cycle);
-            instr_context.cycle_count++, total_cycles++;
-            if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_next_cycle) )
-                callback_fn(the_executor, isa_6502_instr_stage_next_cycle,
-                                instr_context.opcode, dispatch->addressing_mode, dispatch, instr_context.cycle_count, NULL, 0);
+            if ( ! is_in_dma ) {
+#ifdef ENABLE_EXECUTOR_LOCKS
+                pthread_mutex_unlock(&the_executor->state_lock);
+                pthread_mutex_lock(&the_executor->state_lock);
+#endif
+                if ( (the_executor->flags & executor_flags_dma_is_set) ) {
+                    is_in_dma = true;
+                    is_dma_started = ((total_cycles % 2) == 0);
+                    is_dma_copyout = (the_executor->dma_consumer != NULL);
+                    dma_byte_index = 0x0000;
+                    dma_addr_hi = memory_addr_range_get_end(&the_executor->dma_range);
+                    saved_stage = next_stage;
+                    next_stage = isa_6502_instr_stage_exec_dma;
+                    if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_exec_dma) )
+                        callback_fn(the_executor, isa_6502_instr_stage_exec_dma,
+                                        isa_6502_opcode_null(), isa_6502_addressing_undefined, NULL, total_cycles, NULL, 0);
+                } else {
+                    if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_pre_next_cycle) )
+                        callback_fn(the_executor, isa_6502_instr_stage_pre_next_cycle,
+                                        instr_context.opcode, dispatch->addressing_mode, dispatch, instr_context.cycle_count, NULL, 0);
+                    next_stage = dispatch->exec_fn(&instr_context, isa_6502_instr_stage_next_cycle);
+                    instr_context.cycle_count++, total_cycles++;
+                    if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_next_cycle) )
+                        callback_fn(the_executor, isa_6502_instr_stage_next_cycle,
+                                        instr_context.opcode, dispatch->addressing_mode, dispatch, instr_context.cycle_count, NULL, 0);
+                }
+            }
+            if ( is_in_dma ) {
+                if ( is_dma_started ) {
+                    if ( (total_cycles % 2) ) {
+                        // Write on odd:
+                        if ( is_dma_copyout ) {
+                            if ( ! the_executor->dma_consumer(the_executor->dma_context, dma_byte_index++, dma_next_byte) ) {                       
+                                // Early exit:
+                                is_dma_started = false;
+                                is_in_dma = false;
+                                next_stage = saved_stage;
+                                the_executor->flags &= ~executor_flags_dma_is_set;                            
+                            }
+                        } else {
+                            membus_write_addr(MEMORY, the_executor->dma_range.addr_lo++, dma_next_byte);
+                        }
+                        if ( the_executor->dma_range.addr_lo >= dma_addr_hi ) {
+                            // Done!
+                            is_dma_started = false;
+                            is_in_dma = false;
+                            next_stage = saved_stage;
+                            the_executor->flags &= ~executor_flags_dma_is_set;
+                        }
+                    } else {
+                        // Read on even:
+                        if ( is_dma_copyout ) {
+                            dma_next_byte = membus_read_addr(MEMORY, the_executor->dma_range.addr_lo++);
+                        } else {
+                            if ( ! the_executor->dma_provider(the_executor->dma_context, dma_byte_index++, &dma_next_byte) ) {
+                                // Early exit:
+                                is_dma_started = false;
+                                is_in_dma = false;
+                                next_stage = saved_stage;
+                                the_executor->flags &= ~executor_flags_dma_is_set;
+                            }
+                        }
+                    }
+                    total_cycles++;
+                } else {
+                    /* Stall until an even cycle is hit: */
+                    is_dma_started = ((++total_cycles % 2) == 0);
+                }
+            }
         } while ( next_stage != isa_6502_instr_stage_end);
 
 #ifdef ENABLE_DISASSEMBLY
@@ -328,11 +388,43 @@ executor_launch_at_address_range(
     if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_execution_complete) )
         callback_fn(the_executor, isa_6502_instr_stage_execution_complete,
                         isa_6502_opcode_null(), isa_6502_addressing_undefined, NULL, total_cycles, NULL, 0);
+    
+    the_executor->flags &= ~executor_flags_exec_stop;
+    
     return total_cycles;
     
     #undef REGISTERS
     #undef MEMORY
     #undef ISA
+}
+
+//
+
+uint64_t
+executor_launch(
+    executor_t                  *the_executor,
+    executor_stage_callback_t   callback_fn,
+    isa_6502_instr_stage_t      callback_stage_mask,
+    uint16_t                    PC
+)
+{
+    return __executor_launch(the_executor, callback_fn, callback_stage_mask, memory_addr_range_with_lo_and_len(0x0000, 0xFFFF), PC);
+}
+
+//
+
+uint64_t
+executor_launch_in_address_range(
+    executor_t                  *the_executor,
+    executor_stage_callback_t   callback_fn,
+    isa_6502_instr_stage_t      callback_stage_mask,
+    memory_addr_range_t         addr_range,
+    uint16_t                    PC
+)
+{
+    if ( memory_addr_range_does_include(&addr_range, PC) )
+        return __executor_launch(the_executor, callback_fn, callback_stage_mask, addr_range, PC);
+    return 0;
 }
 
 //
@@ -344,146 +436,7 @@ executor_soft_reset(
     isa_6502_instr_stage_t      callback_stage_mask
 )
 {
-    #define REGISTERS           the_executor->registers
-    #define MEMORY              the_executor->memory
-    #define ISA                 the_executor->isa
-    
-#ifdef ENABLE_DISASSEMBLY
-    char                        disasm_buffer[64];
-#endif
-    uint64_t                    total_cycles = 0;
-    uint32_t                    PC_end = 0xFFFF;
-    
-#ifdef ENABLE_EXECUTOR_LOCKS
-    pthread_mutex_lock(&the_executor->state_lock);
-#endif
-    
-    /* Load the value of the RESET vector into the PC: */
-    if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_pre_load_PC) )
-        callback_fn(the_executor, isa_6502_instr_stage_pre_load_PC,
-                        isa_6502_opcode_null(), isa_6502_addressing_undefined, NULL, 0, NULL, 0);
-    REGISTERS->PC = MEMORY->res_vector;
-    if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_post_load_PC) )
-        callback_fn(the_executor, isa_6502_instr_stage_post_load_PC,
-                        isa_6502_opcode_null(), isa_6502_addressing_undefined, NULL, 0, NULL, 0);
-    
-    while ( REGISTERS->PC < PC_end ) {
-        isa_6502_instr_context_t    instr_context = {
-                                            .cycle_count = 0,
-                                            .memory = MEMORY,
-                                            .registers = REGISTERS
-                                        };
-        isa_6502_opcode_t           *opcode_ptr = &instr_context.opcode;
-        isa_6502_opcode_dispatch_t  *dispatch;
-        isa_6502_instr_stage_t      next_stage;
-        
-        /* Read the opcode */
-        if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_pre_fetch_opcode) )
-            callback_fn(the_executor, isa_6502_instr_stage_pre_fetch_opcode,
-                            isa_6502_opcode_null(), isa_6502_addressing_undefined, NULL, 0, NULL, 0);
-        instr_context.opcode.BYTE = membus_read_addr(MEMORY, REGISTERS->PC++);
-        instr_context.cycle_count++, total_cycles++;
-        if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_post_fetch_opcode) )
-            callback_fn(the_executor, isa_6502_instr_stage_post_fetch_opcode,
-                            instr_context.opcode, isa_6502_addressing_undefined, NULL, instr_context.cycle_count, NULL, 0);
-                            
-        /* Decode the opcode: */
-        if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_pre_decode_opcode) )
-            callback_fn(the_executor, isa_6502_instr_stage_pre_decode_opcode,
-                            instr_context.opcode, isa_6502_addressing_undefined, NULL, instr_context.cycle_count, NULL, 0);
-        dispatch = isa_6502_table_lookup_dispatch(ISA, opcode_ptr);
-        if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_post_decode_opcode) )
-            callback_fn(the_executor, isa_6502_instr_stage_post_decode_opcode,
-                            instr_context.opcode, dispatch->addressing_mode, dispatch, instr_context.cycle_count, NULL, 0);
-        
-        /* Valid instruction? */
-        if ( ! dispatch || (dispatch->addressing_mode == isa_6502_addressing_undefined) ) {
-            if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_illegal_instruction) )
-                callback_fn(the_executor, isa_6502_instr_stage_illegal_instruction,
-                                instr_context.opcode, dispatch->addressing_mode, dispatch, instr_context.cycle_count, NULL, 0);
-            break;
-        }
-        
-        /* Fill-in the addressing mode in the context: */
-        instr_context.addressing_mode = dispatch->addressing_mode;
-        
-        /* Loop through any additional cycles the instruction requires: */
-        do {
-            if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_pre_next_cycle) )
-                callback_fn(the_executor, isa_6502_instr_stage_pre_next_cycle,
-                                instr_context.opcode, dispatch->addressing_mode, dispatch, instr_context.cycle_count, NULL, 0);
-            next_stage = dispatch->exec_fn(&instr_context, isa_6502_instr_stage_next_cycle);
-            instr_context.cycle_count++, total_cycles++;
-            if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_next_cycle) )
-                callback_fn(the_executor, isa_6502_instr_stage_next_cycle,
-                                instr_context.opcode, dispatch->addressing_mode, dispatch, instr_context.cycle_count, NULL, 0);
-        } while ( next_stage != isa_6502_instr_stage_end);
-
-#ifdef ENABLE_DISASSEMBLY
-        if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_disasm) && dispatch->disasm_fn) {
-            int     disasm_len = dispatch->disasm_fn(&instr_context, disasm_buffer, sizeof(disasm_buffer));
-            
-            callback_fn(the_executor, isa_6502_instr_stage_disasm,
-                        instr_context.opcode, dispatch->addressing_mode, dispatch, instr_context.cycle_count,
-                        disasm_buffer, disasm_len);
-        }
-#endif
-
-        if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_end) )
-            callback_fn(the_executor, isa_6502_instr_stage_end,
-                            instr_context.opcode, dispatch->addressing_mode, dispatch, instr_context.cycle_count, NULL, 0);
-        
-        /* Drop the lock then reacquire to check for NMI/IRQ */        
-#ifdef ENABLE_EXECUTOR_LOCKS
-        pthread_mutex_unlock(&the_executor->state_lock);
-        pthread_mutex_lock(&the_executor->state_lock);
-#endif
-        if ( (the_executor->flags & executor_flags_irq_is_set) ) {
-            if ( ! registers_SR_get_bit(the_executor->registers, register_SR_Bit_I) ) {
-                /* Service the IRQ */
-                if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_enter_irq) )
-                    callback_fn(the_executor, isa_6502_instr_stage_enter_irq,
-                                    isa_6502_opcode_null(), isa_6502_addressing_undefined, NULL, total_cycles, NULL, 0);
-                if ( ISA->irq ) {
-                    instr_context.cycle_count = 1;
-                    instr_context.opcode.BYTE = 0;
-                    do {
-                        next_stage = ISA->irq(&instr_context, isa_6502_instr_stage_next_cycle);
-                        instr_context.cycle_count++, total_cycles++;
-                    } while ( next_stage != isa_6502_instr_stage_end);
-                }
-                if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_exec_irq) )
-                    callback_fn(the_executor, isa_6502_instr_stage_exec_irq,
-                                    isa_6502_opcode_null(), isa_6502_addressing_undefined, NULL, total_cycles, NULL, 0);
-            }
-        }
-        if ( (the_executor->flags & executor_flags_nmi_is_set) ) {
-            /* Service the NMI */
-            if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_enter_nmi) )
-                callback_fn(the_executor, isa_6502_instr_stage_enter_nmi,
-                                isa_6502_opcode_null(), isa_6502_addressing_undefined, NULL, total_cycles, NULL, 0);
-            if ( ISA->nmi ) {
-                instr_context.cycle_count = 1;
-                instr_context.opcode.BYTE = 0;
-                do {
-                    next_stage = ISA->nmi(&instr_context, isa_6502_instr_stage_next_cycle);
-                    instr_context.cycle_count++, total_cycles++;
-                } while ( next_stage != isa_6502_instr_stage_end);
-            }
-            if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_exec_nmi) )
-                callback_fn(the_executor, isa_6502_instr_stage_exec_nmi,
-                                isa_6502_opcode_null(), isa_6502_addressing_undefined, NULL, total_cycles, NULL, 0);
-        }
-        the_executor->flags &= ~(executor_flags_irq_is_set | executor_flags_nmi_is_set);
-    }        
-    if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_execution_complete) )
-        callback_fn(the_executor, isa_6502_instr_stage_execution_complete,
-                        isa_6502_opcode_null(), isa_6502_addressing_undefined, NULL, total_cycles, NULL, 0);
-    return total_cycles;
-    
-    #undef REGISTERS
-    #undef MEMORY
-    #undef ISA
+    return __executor_launch(the_executor, callback_fn, callback_stage_mask, memory_addr_range_with_lo_and_len(0x0000, 0xFFFF), the_executor->memory->res_vector);
 }
 
 //
@@ -513,6 +466,72 @@ executor_set_nmi(
     pthread_mutex_lock(&the_executor->state_lock);
 #endif
     the_executor->flags |= executor_flags_nmi_is_set;
+#ifdef ENABLE_EXECUTOR_LOCKS
+    pthread_mutex_unlock(&the_executor->state_lock);
+#endif
+}
+
+//
+
+void
+executor_set_exec_stop(
+    executor_t  *the_executor
+)
+{      
+#ifdef ENABLE_EXECUTOR_LOCKS
+    pthread_mutex_lock(&the_executor->state_lock);
+#endif
+    the_executor->flags |= executor_flags_exec_stop;
+#ifdef ENABLE_EXECUTOR_LOCKS
+    pthread_mutex_unlock(&the_executor->state_lock);
+#endif
+}
+
+//
+
+void
+executor_set_dma_copyin(
+    executor_t                          *the_executor,
+    memory_addr_range_t                 addr_range,
+    executor_dma_provider_callback_t    provider_callback,
+    const void                          *callback_context
+)
+{      
+#ifdef ENABLE_EXECUTOR_LOCKS
+    pthread_mutex_lock(&the_executor->state_lock);
+#endif
+    if ( (the_executor->flags & executor_flags_dma_is_set) == 0 ) {
+        the_executor->flags |= executor_flags_dma_is_set;
+        the_executor->dma_range = addr_range;
+        the_executor->dma_provider = provider_callback;
+        the_executor->dma_consumer = NULL;
+        the_executor->dma_context = callback_context;
+    }
+#ifdef ENABLE_EXECUTOR_LOCKS
+    pthread_mutex_unlock(&the_executor->state_lock);
+#endif
+}
+
+//
+
+void
+executor_set_dma_copyout(
+    executor_t                          *the_executor,
+    memory_addr_range_t                 addr_range,
+    executor_dma_consumer_callback_t    consumer_callback,
+    const void                          *callback_context
+)
+{      
+#ifdef ENABLE_EXECUTOR_LOCKS
+    pthread_mutex_lock(&the_executor->state_lock);
+#endif
+    if ( (the_executor->flags & executor_flags_dma_is_set) == 0 ) {
+        the_executor->flags |= executor_flags_dma_is_set;
+        the_executor->dma_range = addr_range;
+        the_executor->dma_provider = NULL;
+        the_executor->dma_consumer = consumer_callback;
+        the_executor->dma_context = callback_context;
+    }
 #ifdef ENABLE_EXECUTOR_LOCKS
     pthread_mutex_unlock(&the_executor->state_lock);
 #endif

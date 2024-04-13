@@ -394,6 +394,35 @@ parse_isa_dialect(
 
 //
 
+bool
+dma_consumer(
+    const void  *context,
+    uint16_t    byte_index,
+    uint8_t     next_byte
+)
+{
+    printf("%04hX : %02hhX\n", byte_index, next_byte);
+    return true;
+}
+
+//
+
+bool
+dma_provider(
+    const void  *context,
+    uint16_t    byte_index,
+    uint8_t     *next_byte
+)
+{
+    uint8_t     rng = random();
+    
+    printf("%04hX : %02hhX\n", byte_index, rng);
+    *next_byte = rng;
+    return true;
+}
+
+//
+
 void*
 tui_input_thread_run(
     void    *context
@@ -406,6 +435,15 @@ tui_input_thread_run(
         int     c = fgetc(stdin);
         
         switch ( c ) {
+            case '>':
+                executor_set_dma_copyout(*the_executor, memory_addr_range_with_lo_and_len(0x2000, 0x0010), dma_consumer, NULL);
+                break;
+            case '<':
+                executor_set_dma_copyin(*the_executor, memory_addr_range_with_lo_and_len(0x4000, 0x0010), dma_provider, NULL);
+                break;
+            case '4':
+                membus_fprintf((*the_executor)->memory, stdout, 0, memory_addr_range_with_lo_and_len(0x4000, 0x0018));
+                break;
             case 'N':
             case 'n':
                 executor_set_nmi(*the_executor);
@@ -414,8 +452,10 @@ tui_input_thread_run(
             case 'i':
                 executor_set_irq(*the_executor);
                 break;
+            case 'Q':
             case 'q':
                 is_running = false;
+                executor_set_exec_stop(*the_executor);
                 break;
         }
     }
@@ -436,6 +476,8 @@ main(
     executor_stage_callback_t   exec_callback = our_executor_stage_callback;
     isa_6502_instr_stage_t      exec_callback_event_mask = isa_6502_instr_stage_all;
     pthread_t                   tui_input_thread;
+    
+    srandom(time(NULL));
     
     pthread_create(&tui_input_thread, NULL, tui_input_thread_run, &the_vm);
     
@@ -483,12 +525,12 @@ main(
                     
                     printf("INFO:  executing from $%04hX-$%04hX\n", addr_start, addr_end);
                     gettimeofday(&t0, NULL);
-                    total_cycles = executor_launch_at_address_range(
+                    total_cycles = executor_launch_in_address_range(
                                             the_vm,
                                             exec_callback,
                                             exec_callback_event_mask,
-                                            addr_start,
-                                            addr_end
+                                            memory_addr_range_with_lo_and_hi(addr_start, addr_end),
+                                            addr_start
                                         );
                     gettimeofday(&t1, NULL);
                     cycles_per_sec = (double)total_cycles / ((double)(t1.tv_sec - t0.tv_sec) + 1e-6 * (double)(t1.tv_usec - t0.tv_usec));

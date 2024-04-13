@@ -2,6 +2,7 @@
 # Build the membus library
 #
 set(system_6502_membus_SOURCES
+        memory_addr_range.c
         membus.c
         membus_module_std64k.c
         membus_module_paged.c

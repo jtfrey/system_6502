@@ -117,6 +117,7 @@ enum {
     isa_6502_instr_stage_exec_nmi = 1 << 12,
     isa_6502_instr_stage_enter_irq= 1 << 13,
     isa_6502_instr_stage_exec_irq = 1 << 14,
+    isa_6502_instr_stage_exec_dma = 1 << 15,
     isa_6502_instr_stage_illegal_instruction = 1 << 31,
     /**/
     isa_6502_instr_stage_all = 0xFFFFFFFF
