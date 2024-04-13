@@ -35,12 +35,20 @@ our_executor_stage_callback(
             if ( disasm && disasm_len ) printf("[%04X] DISASM:         %s\n", the_stage, disasm);
             break;
             
-        case isa_6502_instr_stage_nmi:
-            printf("CAUGHT NMI\n");
+        case isa_6502_instr_stage_enter_nmi:
+            printf("[--->] ENTER NMI\n");
             break;
             
-        case isa_6502_instr_stage_irq:
-            printf("CAUGHT IRQ\n");
+        case isa_6502_instr_stage_enter_irq:
+            printf("[--->] ENTER IRQ\n");
+            break;
+            
+        case isa_6502_instr_stage_exec_nmi:
+            printf("[<---] EXEC NMI @ $%04hX\n", REGISTERS->PC);
+            break;
+            
+        case isa_6502_instr_stage_exec_irq:
+            printf("[<---] EXEC IRQ @ $%04hX\n", REGISTERS->PC);
             break;
             
     }
@@ -377,15 +385,11 @@ tui_input_thread_run(
         switch ( c ) {
             case 'N':
             case 'n':
-                printf("Setting NMI\n");
                 executor_set_nmi(*the_executor);
-                printf("Did set NMI\n");
                 break;
             case 'I':
             case 'i':
-                printf("Setting IRQ\n");
                 executor_set_irq(*the_executor);
-                printf("Did set IRQ\n");
                 break;
             case 'q':
                 is_running = false;
@@ -406,7 +410,7 @@ main(
     int                         rc = 0, optch;
     executor_t                  *the_vm = executor_alloc_with_default_components();
     executor_stage_callback_t   exec_callback = our_executor_stage_callback;
-    isa_6502_instr_stage_t      exec_callback_event_mask = executor_stage_callback_default_stage_mask | isa_6502_instr_stage_disasm | isa_6502_instr_stage_nmi | isa_6502_instr_stage_irq;
+    isa_6502_instr_stage_t      exec_callback_event_mask = isa_6502_instr_stage_all;
     pthread_t                   tui_input_thread;
     
     pthread_create(&tui_input_thread, NULL, tui_input_thread_run, &the_vm);
@@ -468,7 +472,7 @@ main(
             
             case 'v':
                 exec_callback = our_executor_stage_callback;
-                exec_callback_event_mask = executor_stage_callback_default_stage_mask | isa_6502_instr_stage_disasm | isa_6502_instr_stage_nmi | isa_6502_instr_stage_irq;
+                exec_callback_event_mask = isa_6502_instr_stage_all;
                 break;
             case 'q':
                 exec_callback = NULL;
@@ -476,7 +480,7 @@ main(
                 break;
             case '1':
                 exec_callback = our_executor_stage_callback;
-                exec_callback_event_mask = isa_6502_instr_stage_nmi | isa_6502_instr_stage_irq;
+                exec_callback_event_mask = isa_6502_instr_stage_enter_nmi | isa_6502_instr_stage_enter_irq | isa_6502_instr_stage_exec_nmi | isa_6502_instr_stage_exec_irq;
                 break;
             
             case 'l': {

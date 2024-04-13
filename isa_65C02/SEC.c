@@ -1,0 +1,3 @@
+
+#define __isa_65C02_SEC __isa_6502_SEC
+#define __isa_65C02_disasm_SEC __isa_6502_disasm_SEC

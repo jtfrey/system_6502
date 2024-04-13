@@ -1,0 +1,3 @@
+
+#define __isa_65C02_DEX __isa_6502_DEX
+#define __isa_65C02_disasm_DEX __isa_6502_disasm_DEX

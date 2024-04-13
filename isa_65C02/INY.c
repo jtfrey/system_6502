@@ -1,0 +1,3 @@
+
+#define __isa_65C02_INY __isa_6502_INY
+#define __isa_65C02_disasm_INY __isa_6502_disasm_INY

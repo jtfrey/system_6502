@@ -16,10 +16,12 @@
  */
 typedef struct executor {
     uint32_t            flags;
-    pthread_mutex_t     state_lock;
     registers_t         *registers;
     membus_t            *memory;
     isa_6502_table_t    *isa;
+#ifdef ENABLE_EXECUTOR_LOCKS
+    pthread_mutex_t     state_lock;
+#endif
 } executor_t;
 
 /*

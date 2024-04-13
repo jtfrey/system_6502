@@ -51,13 +51,10 @@ ISA_6502_INSTR(JMP)
 #else
             ADDR_ptr--;
 #endif
-
-            at_stage = isa_6502_instr_stage_next_cycle;
             break;
         case 4:
             /* Read high byte: */
             *ADDR_ptr = membus_read_addr(opcode_context->memory, ADDR);
-            opcode_context->registers->PC--;
             at_stage = isa_6502_instr_stage_end;
             break;
     }

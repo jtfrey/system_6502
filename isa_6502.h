@@ -52,6 +52,8 @@ enum {
     isa_6502_addressing_zeropage,
     isa_6502_addressing_zeropage_x_indexed,
     isa_6502_addressing_zeropage_y_indexed,
+    isa_6502_addressing_zeropage_indirect,              /* 65C02 */
+    isa_6502_addressing_absolute_x_indexed_indirect,    /* 65C02 */
     isa_6502_addressing_max
 };
 
@@ -111,8 +113,10 @@ enum {
     isa_6502_instr_stage_disasm = 1 << 9,
     isa_6502_instr_stage_execution_complete = 1 << 10,
     /**/
-    isa_6502_instr_stage_nmi = 1 << 11,
-    isa_6502_instr_stage_irq = 1 << 12,
+    isa_6502_instr_stage_enter_nmi = 1 << 11,
+    isa_6502_instr_stage_exec_nmi = 1 << 12,
+    isa_6502_instr_stage_enter_irq= 1 << 13,
+    isa_6502_instr_stage_exec_irq = 1 << 14,
     isa_6502_instr_stage_illegal_instruction = 1 << 31,
     /**/
     isa_6502_instr_stage_all = 0xFFFFFFFF
@@ -191,7 +195,8 @@ typedef isa_6502_opcode_block_a_t isa_6502_opcode_blocks_t[4];
  * Data structure that holds a 6502 instruction dispatch table.
  */
 typedef struct isa_table {
-    isa_6502_opcode_blocks_t    table;
+    isa_6502_opcode_blocks_t        table;
+    isa_6502_instr_exec_callback_t  nmi, irq, reset;
 } isa_6502_table_t;
 
 /*
@@ -201,7 +206,8 @@ typedef struct isa_table {
  * ISA (e.g. 65C02).
  */
 enum {
-    isa_6502_dialect_base = 0
+    isa_6502_dialect_base = 0,
+    isa_6502_dialect_65C02
 };
 
 /*
@@ -252,7 +258,6 @@ void isa_6502_table_free(isa_6502_table_t *isa_table);
  * isa_6502_addressing_undefined.
  */
 isa_6502_opcode_dispatch_t* isa_6502_table_lookup_dispatch(isa_6502_table_t *isa_table, isa_6502_opcode_t *opcode);
-
 
 uint8_t isa_6502_pop(registers_t *the_registers, membus_t *the_membus);
 void isa_6502_push(registers_t *the_registers, membus_t *the_membus, uint8_t value);

@@ -20,7 +20,9 @@ An executor object bundles the registers, memory, and ISA together into a single
 
 ### Future extension
 
-The code is structured such that augmented 6502 ISAs (like the 6502X, 65C02) can also be implemented.  In theory, additional staged callback functions or modified functions would be assembled into additional decode dispatch tables.  The API already includes a method by which the consumer can select which ISA dialect to configure at runtime.
+The code is structured such that augmented 6502 ISAs can also be implemented.  In theory, additional staged callback functions or modified functions would be assembled into additional decode dispatch tables.  The API already includes a method by which the consumer can select which ISA dialect to configure at runtime.
+
+As proof of concept, the baseline 65C02 extended instructions and additional addressing modes are present as the `isa_6502_dialect_65C02` dialect.  Information about the functionality (minus Rockwell and WDC additions) was found on [this web page](isa_6502_dialect_65C02), with additional explanations of the new addressing modes [found here](http://www.6502.org/users/obelisk/65C02/addressing.html).
 
 
 ## Building the software

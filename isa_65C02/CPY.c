@@ -1,0 +1,3 @@
+
+#define __isa_65C02_CPY __isa_6502_CPY
+#define __isa_65C02_disasm_CPY __isa_6502_disasm_CPY

@@ -1,0 +1,3 @@
+
+#define __isa_65C02_RESET __isa_6502_RESET
+#define __isa_65C02_disasm_RESET __isa_6502_disasm_RESET

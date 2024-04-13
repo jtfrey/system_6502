@@ -12,6 +12,7 @@ project(system_6502
 option(ENABLE_REGISTERS_TEST "Compile the registers test program" OFF)
 option(ENABLE_ISA_6502_TEST "Compile the ISA 6502 test program" OFF)
 
+option(ENABLE_EXECUTOR_LOCKS "Executor is thread-safe" ON)
 option(ENABLE_MEMBUS_LOCKS "Memory controller is thread-safe" ON)
 option(ENABLE_MEMBUS_CACHE "Memory controller caches last 8 bytes read/written" ON)
 option(ENABLE_MEMBUS_TEST "Compile the memory bus test program" ON)
@@ -91,10 +92,10 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 #
 # Build the membus library
 #
-add_subdirectory(membus)
+add_subdirectory(libmembus)
 
 add_executable(system_6502 registers.c isa_6502.c executor.c tui_window.c system_6502.c)
-target_include_directories(system_6502 PRIVATE ${CURSES_INCLUDE_DIRS} membus)
+target_include_directories(system_6502 PRIVATE ${CURSES_INCLUDE_DIRS} libmembus)
 target_compile_options(system_6502 PRIVATE ${CURSES_CFLAGS})
 target_link_libraries(system_6502 PRIVATE ${CURSES_LIBRARIES} Threads::Threads system_6502_membus)
 
@@ -105,7 +106,7 @@ endif ()
 
 if ( ENABLE_ISA_6502_TEST )
     add_executable(isa_6502_test registers.c isa_6502.c)
-    target_include_directories(isa_6502_test PRIVATE membus)
+    target_include_directories(isa_6502_test PRIVATE libmembus)
     target_compile_definitions(isa_6502_test PRIVATE ENABLE_ISA_6502_TEST)
     target_link_libraries(isa_6502_test PRIVATE system_6502_membus)
 endif ()

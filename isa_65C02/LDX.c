@@ -1,0 +1,3 @@
+
+#define __isa_65C02_LDX __isa_6502_LDX
+#define __isa_65C02_disasm_LDX __isa_6502_disasm_LDX

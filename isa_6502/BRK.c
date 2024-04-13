@@ -10,7 +10,7 @@ ISA_6502_INSTR(BRK)
     switch ( opcode_context->cycle_count ) {
         case 1:
             /* Add 2 to PC */
-            PC = opcode_context->registers->PC + 2;
+            PC = opcode_context->registers->PC + 1;
 #ifdef ISA_6502_HOST_IS_LE
             PC_ptr = ((uint8_t*)&PC) + 1;
 #else

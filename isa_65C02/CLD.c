@@ -1,0 +1,3 @@
+
+#define __isa_65C02_CLD __isa_6502_CLD
+#define __isa_65C02_disasm_CLD __isa_6502_disasm_CLD

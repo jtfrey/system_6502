@@ -11,6 +11,8 @@ set(system_6502_membus_SOURCES
         membus_module_mirror.c
     )
 
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
+
 add_library(system_6502_membus STATIC ${system_6502_membus_SOURCES})
 target_include_directories(system_6502_membus PRIVATE ${CMAKE_BINARY_DIR})
         

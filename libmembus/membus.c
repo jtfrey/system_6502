@@ -487,19 +487,19 @@ __membus_write_addr(
             break;
         case MEMORY_ADDR_RES_VECTOR:
             did_write_value = true;
-            the_membus->nmi_vector = (the_membus->res_vector & 0xFF00) | value;
+            the_membus->res_vector = (the_membus->res_vector & 0xFF00) | value;
             break;
         case MEMORY_ADDR_RES_VECTOR + 1:
             did_write_value = true;
-            the_membus->nmi_vector = (the_membus->res_vector & 0x00FF) | (value << 8);
+            the_membus->res_vector = (the_membus->res_vector & 0x00FF) | (value << 8);
             break;
         case MEMORY_ADDR_IRQ_VECTOR:
             did_write_value = true;
-            the_membus->nmi_vector = (the_membus->irq_vector & 0xFF00) | value;
+            the_membus->irq_vector = (the_membus->irq_vector & 0xFF00) | value;
             break;
         case MEMORY_ADDR_IRQ_VECTOR + 1:
             did_write_value = true;
-            the_membus->nmi_vector = (the_membus->irq_vector & 0x00FF) | (value << 8);
+            the_membus->irq_vector = (the_membus->irq_vector & 0x00FF) | (value << 8);
             break;
         default: {
             membus_module_tier_node_t   *tiers = (membus_module_tier_node_t*)the_membus->modules;

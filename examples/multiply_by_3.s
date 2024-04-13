@@ -6,6 +6,11 @@ Delay:      DEX
             BNE Delay
             DEY
             BNE Delay
+            
+            LDA #.LOBYTE(Exit)
+            STA $2200
+            LDA #.HIBYTE(Exit)
+            STA $2201
         
             LDY #$00
             LDX #$00        ; Initialize the array of 256
@@ -26,7 +31,7 @@ MultLoop:   JSR Times3      ; Unroll the loop to do 4 operations
             JSR Times3
             INX
             BNE MultLoop
-            JMP Exit
+            JMP ($2200)
             
 
 Times3:     PHA
@@ -54,4 +59,9 @@ Times3:     PHA
             PLA
             RTS
             
-Exit:       BRK
+Exit:       STA Array,X
+            STA Array,Y
+            BRK
+            BRK
+            BRK
+            

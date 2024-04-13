@@ -1,0 +1,3 @@
+
+#define __isa_65C02_TXA __isa_6502_TXA
+#define __isa_65C02_disasm_TXA __isa_6502_disasm_TXA

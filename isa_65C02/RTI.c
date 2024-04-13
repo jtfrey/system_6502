@@ -1,0 +1,3 @@
+
+#define __isa_65C02_RTI __isa_6502_RTI
+#define __isa_65C02_disasm_RTI __isa_6502_disasm_RTI
