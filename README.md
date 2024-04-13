@@ -8,9 +8,17 @@ The best resource I found for my effort was [this summary of the architecture](h
 
 ## Organization
 
+### Registers
+
 The 6502 register set is presented as a data structure containing the 8-bit accumulator (A), X- and Y-index (X, Y), and status register (SR); and the 16-bit program counter (PC).
 
-Memory is implemented as a virtual 64 KiB address bus ("membus") into which zero or more modules can be interfaced.  Each module is associated with an address range and is ordered relative to other modules by a *tier* value.  This allows for overlaying of modules — in fact, memory watchpoints are implemented as a membus module.  The simplest membus consists of only the IRQ, RES, and NMI vectors.  The next simplest has a single `std64k` module present which wraps an array of 65536 bytes.  The native RAM for a NES would be a 2 KiB `paged` module that wraps eight pages at `$0000` through `$07FF` (zero page, stack page, and six pages for general use).  The NES used extensive mirroring of the same physical RAM to multiple address ranges:  a "mirror" module is available to interface a single membus module with additional address ranges.
+### Memory
+
+Memory is implemented as a virtual 64 KiB address bus ("membus") into which zero or more modules can be interfaced.  Each module is associated with an address range and is ordered relative to other modules by a *tier* value.  This allows for overlaying of modules — in fact, memory watchpoints are implemented as a membus module.  The simplest membus consists of only the IRQ, RES, and NMI vectors.  The next simplest has a single `std64k` module present which wraps an array of 65536 bytes.  The native RAM for a NES would be a 2 KiB `paged` module that wraps eight pages at `$0000` through `$07FF` (zero page, stack page, and six pages for general use).  The NES used extensive mirroring of the same physical RAM to multiple address ranges:  a "mirror" module is available to interface a single membus module with additional address ranges.  A generic map of modules used to construct the NES membus is shown below:
+
+<img align="right" src="./assets/nes_memory_map.png" width="100%"/>
+
+### ISA
 
 Each 6502 instruction is implemented as a staged callback function implemented in source files found in the [isa_6502](isa_6502/) directory.  After the opcode has been fetched and decoded (cycle 0), the appropriate callback is called and instruction handling begins at cycle 1.  Every implemented combination of instruction and addressing mode behaves as the physical CPU would:  an `LDA $2000` taking 4 cycles in reality equates with the operand fetch and three calls to the callback function.
 
@@ -18,7 +26,7 @@ The 6502 opcodes map their 8 bits to the pattern `aaabbbcc`.  There are at most 
 
 An executor object bundles the registers, memory, and ISA together into a single entity and facilitates the kickoff of the instruction-processing pipeline.
 
-### Future extension
+#### Future extension
 
 The code is structured such that augmented 6502 ISAs can also be implemented.  In theory, additional staged callback functions or modified functions would be assembled into additional decode dispatch tables.  The API already includes a method by which the consumer can select which ISA dialect to configure at runtime.
 
