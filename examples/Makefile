@@ -7,7 +7,7 @@ RUN_FLAGS	= -q
 
 OBJECTS		= hello.bin hello_alt.bin multiply_by_3.bin nmi-test.bin 65C02_multiply_by_3.bin \
 		  bit_reorder_1.bin bit_reorder_2.bin bit_reorder_3.bin bit_reorder_4.bin \
-		  bit_reorder_5.bin fibonacci.bin
+		  bit_reorder_5.bin bit_reorder_6.bin bit_reorder_7.bin fibonacci.bin
 
 all: $(OBJECTS)
 
@@ -42,13 +42,19 @@ run_bit_reorder_2: bit_reorder_2.bin
 	../build/system_6502 $(RUN_FLAGS) -v -l $<@0x2000:27 -d 0x2000:27 -p 0xCD@0x0000 -x 0x2000:27
 
 run_bit_reorder_3: bit_reorder_3.bin
-	../build/system_6502 $(RUN_FLAGS) -v -l $<@0x2000:50 -d 0x2000:50 -p 0xCD@0x0000 -x 0x2000:50
+	../build/system_6502 $(RUN_FLAGS) -v -l $<@0x2000:44 -d 0x2000:44 -p 0xCD@0x0000 -x 0x2000:44
 
 run_bit_reorder_4: bit_reorder_4.bin
 	../build/system_6502 $(RUN_FLAGS) -v -l $<@0x2000:52 -d 0x2000:52 -p 0xCD@0x0000 -x 0x2000:52
 
 run_bit_reorder_5: bit_reorder_5.bin
 	../build/system_6502 $(RUN_FLAGS) -v -l $<@0x2000:47 -d 0x2000:47 -p 0xCD@0x0000 -x 0x2000:47
+
+run_bit_reorder_6: bit_reorder_6.bin
+	../build/system_6502 $(RUN_FLAGS) -v -l $<@0x2000:15 -d 0x2000:15 -p 0xCD@0x0000 -x 0x2000:15
+
+run_bit_reorder_7: bit_reorder_7.bin
+	../build/system_6502 $(RUN_FLAGS) -v -l $<@0x2000:28 -d 0x2000:28 -p 0xCD@0x0000 -x 0x2000:28
 
 run_fibonacci: fibonacci.bin
 	../build/system_6502 $(RUN_FLAGS) -v -l $<@0x2000:41 -d 0x2000:41 -p 0xA@0x0000 -x 0x2000:41
