@@ -194,7 +194,7 @@ __executor_launch(
 #endif
     uint64_t                    total_cycles = 0;
     uint32_t                    PC_end = (uint32_t)addr_range.addr_lo + (uint32_t)addr_range.addr_len;
-    bool                        is_in_dma = false, is_dma_started, is_dma_copyout;
+    bool                        is_in_dma = false, is_dma_started, is_dma_copyout, saved_membus_cache_state;
     uint32_t                    dma_addr_hi;
     uint16_t                    dma_byte_index;
     uint8_t                     dma_next_byte;
@@ -270,6 +270,8 @@ __executor_launch(
                     dma_addr_hi = memory_addr_range_get_end(&the_executor->dma_range);
                     saved_stage = next_stage;
                     next_stage = isa_6502_instr_stage_exec_dma;
+                    saved_membus_cache_state = membus_get_cache_disable(MEMORY);
+                    membus_set_cache_disable(MEMORY, true);
                     if ( callback_fn && (callback_stage_mask & isa_6502_instr_stage_exec_dma) )
                         callback_fn(the_executor, isa_6502_instr_stage_exec_dma,
                                         isa_6502_opcode_null(), isa_6502_addressing_undefined, NULL, total_cycles, NULL, 0);
@@ -294,7 +296,8 @@ __executor_launch(
                                 is_dma_started = false;
                                 is_in_dma = false;
                                 next_stage = saved_stage;
-                                the_executor->flags &= ~executor_flags_dma_is_set;                            
+                                the_executor->flags &= ~executor_flags_dma_is_set;
+                                membus_set_cache_disable(MEMORY, saved_membus_cache_state);
                             }
                         } else {
                             membus_write_addr(MEMORY, the_executor->dma_range.addr_lo++, dma_next_byte);
@@ -305,6 +308,7 @@ __executor_launch(
                             is_in_dma = false;
                             next_stage = saved_stage;
                             the_executor->flags &= ~executor_flags_dma_is_set;
+                            membus_set_cache_disable(MEMORY, saved_membus_cache_state);
                         }
                     } else {
                         // Read on even:
@@ -317,6 +321,7 @@ __executor_launch(
                                 is_in_dma = false;
                                 next_stage = saved_stage;
                                 the_executor->flags &= ~executor_flags_dma_is_set;
+                                membus_set_cache_disable(MEMORY, saved_membus_cache_state);
                             }
                         }
                     }

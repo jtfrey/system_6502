@@ -14,7 +14,8 @@ ISA_65C02_INSTR(ROL)
             ADDR = 0x0000;
             did_cross_page = false;
             if ( opcode_context->addressing_mode == isa_6502_addressing_accumulator ) {
-                opcode_context->registers->A = ((uint16_t)opcode_context->registers->A << 1) | registers_SR_get_bit(opcode_context->registers, register_SR_Bit_C);
+                ALU = ((uint16_t)opcode_context->registers->A << 1) | registers_SR_get_bit(opcode_context->registers, register_SR_Bit_C);
+                opcode_context->registers->A = ALU & 0x00FF;
                 registers_did_set_A(
                         opcode_context->registers,
                         ((ALU & 0xFF00) != 0) ? registers_Carry_set : registers_Carry_clear

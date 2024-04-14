@@ -5,10 +5,14 @@ ASFLAGS_65C02	= --cpu 65c02 -t none
 
 RUN_FLAGS	= -q
 
-all: hello.bin hello_alt.bin multiply_by_3.bin nmi-test.bin 65C02_multiply_by_3.bin
+OBJECTS		= hello.bin hello_alt.bin multiply_by_3.bin nmi-test.bin 65C02_multiply_by_3.bin \
+		  bit_reorder_1.bin bit_reorder_2.bin bit_reorder_3.bin bit_reorder_4.bin \
+		  bit_reorder_5.bin fibonacci.bin
+
+all: $(OBJECTS)
 
 clean::
-	$(RM) hello.bin hello_alt.bin multiply_by_3.bin nmi-test.bin
+	$(RM) $(OBJECTS)
 
 65C02%.bin: 65C02%.s
 	$(AS) $(ASFLAGS_65C02) -o $@ $+
@@ -30,4 +34,22 @@ run_nmi-test: nmi-test.bin
 
 run_65C02_multiply_by_3: 65C02_multiply_by_3.bin
 	../build/system_6502 -i 65C02 $(RUN_FLAGS) -l 65C02_multiply_by_3.bin@0x2000:113 -d 0x2000:113 -x 0x2000:113 -s multiply.out@0x2100:0x100
+
+run_bit_reorder_1: bit_reorder_1.bin
+	../build/system_6502 $(RUN_FLAGS) -v -l $<@0x2000:19 -d 0x2000:19 -p 0xCD@0x0000 -x 0x2000:19
+
+run_bit_reorder_2: bit_reorder_2.bin
+	../build/system_6502 $(RUN_FLAGS) -v -l $<@0x2000:27 -d 0x2000:27 -p 0xCD@0x0000 -x 0x2000:27
+
+run_bit_reorder_3: bit_reorder_3.bin
+	../build/system_6502 $(RUN_FLAGS) -v -l $<@0x2000:50 -d 0x2000:50 -p 0xCD@0x0000 -x 0x2000:50
+
+run_bit_reorder_4: bit_reorder_4.bin
+	../build/system_6502 $(RUN_FLAGS) -v -l $<@0x2000:52 -d 0x2000:52 -p 0xCD@0x0000 -x 0x2000:52
+
+run_bit_reorder_5: bit_reorder_5.bin
+	../build/system_6502 $(RUN_FLAGS) -v -l $<@0x2000:47 -d 0x2000:47 -p 0xCD@0x0000 -x 0x2000:47
+
+run_fibonacci: fibonacci.bin
+	../build/system_6502 $(RUN_FLAGS) -v -l $<@0x2000:41 -d 0x2000:41 -p 0xA@0x0000 -x 0x2000:41
 

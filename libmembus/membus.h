@@ -192,6 +192,7 @@ typedef struct membus {
 #endif
 
 #ifdef ENABLE_MEMBUS_CACHE
+    bool            cache_disable;
     uint8_t         rcache_idx, wcache_idx;
     uint8_t         rcache[8], wcache[8];
 #endif
@@ -289,6 +290,11 @@ void membus_free(membus_t *the_membus);
  * membus_module_retain() function).
  */
 bool membus_register_module(membus_t *the_membus, int tier, membus_module_ref the_module);
+
+#ifdef ENABLE_MEMBUS_CACHE
+bool membus_get_cache_disable(membus_t *the_membus);
+void membus_set_cache_disable(membus_t *the_membus, bool should_disable);
+#endif
 
 /*
  * @function membus_read_addr

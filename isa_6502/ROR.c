@@ -12,10 +12,12 @@ ISA_6502_INSTR(ROR)
         case 1:
             ADDR = 0x0000;
             if ( opcode_context->addressing_mode == isa_6502_addressing_accumulator ) {
-                opcode_context->registers->A = ((uint16_t)opcode_context->registers->A << 1) | registers_SR_get_bit(opcode_context->registers, register_SR_Bit_C);
+                bool    is_carry = (opcode_context->registers->A & 0x01);
+                
+                opcode_context->registers->A = (opcode_context->registers->A >> 1) | (registers_SR_get_bit(opcode_context->registers, register_SR_Bit_C) << 7);
                 registers_did_set_A(
                         opcode_context->registers,
-                        ((ALU & 0xFF00) != 0) ? registers_Carry_set : registers_Carry_clear
+                        is_carry ? registers_Carry_set : registers_Carry_clear
                     );
                 return isa_6502_instr_stage_end;
             } else {
@@ -95,15 +97,17 @@ ISA_6502_INSTR(ROR)
             break;
     }
     if ( is_penultimate ) {
-        ALU = (ALU >> 1) | (ALU << 8) | (registers_SR_get_bit(opcode_context->registers, register_SR_Bit_C) << 7);
+        bool        is_carry = (ALU & 0x01);
+        
+        ALU = ((ALU >> 1) | (registers_SR_get_bit(opcode_context->registers, register_SR_Bit_C) << 7)) & 0x00FF;
         registers_status_with_value(
                 opcode_context->registers,
-                ALU & 0x00FF,
-                ((ALU & 0xFF00) != 0) ? registers_Carry_set : registers_Carry_clear
+                ALU,
+                is_carry ? registers_Carry_set : registers_Carry_clear
             );
     }
     else if ( at_stage == isa_6502_instr_stage_end) {
-        membus_write_addr(opcode_context->memory, ADDR, ALU & 0x00FF);
+        membus_write_addr(opcode_context->memory, ADDR, ALU);
     }
     return at_stage;
 }

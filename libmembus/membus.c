@@ -119,6 +119,9 @@ membus_alloc(void)
         new_bus->nmi_vector = 0x0FF0;
         new_bus->res_vector = 0xF00F;
         new_bus->irq_vector = 0xCAFE;
+#ifdef ENABLE_MEMBUS_CACHE
+        new_bus->cache_disable = false;
+#endif
     }
     return new_bus;
 }
@@ -265,6 +268,46 @@ membus_register_module(
 
 //
 
+#ifdef ENABLE_MEMBUS_CACHE
+
+bool
+membus_get_cache_disable(
+    membus_t    *the_membus
+)
+{
+    bool        should_disable;
+    
+#ifdef ENABLE_MEMBUS_LOCKS
+    pthread_mutex_lock(&the_membus->rw_lock);
+#endif
+    should_disable = the_membus->cache_disable;
+#ifdef ENABLE_MEMBUS_LOCKS
+    pthread_mutex_unlock(&the_membus->rw_lock);
+#endif
+    return should_disable;
+}
+
+//
+
+void
+membus_set_cache_disable(
+    membus_t    *the_membus,
+    bool        should_disable
+)
+{
+#ifdef ENABLE_MEMBUS_LOCKS
+    pthread_mutex_lock(&the_membus->rw_lock);
+#endif
+    the_membus->cache_disable = should_disable;
+#ifdef ENABLE_MEMBUS_LOCKS
+    pthread_mutex_unlock(&the_membus->rw_lock);
+#endif
+}
+
+#endif
+
+//
+
 uint8_t
 __membus_read_addr(
     membus_t    *the_membus,
@@ -337,7 +380,7 @@ __membus_read_addr(
         }
     }
 #ifdef ENABLE_MEMBUS_CACHE
-    if ( did_read_value ) membus_rcache_push(the_membus, value);
+    if ( did_read_value && ! the_membus->cache_disable ) membus_rcache_push(the_membus, value);
 #endif
     return value;
 }
@@ -432,7 +475,7 @@ __membus_write_addr(
         }
     }
 #ifdef ENABLE_MEMBUS_CACHE
-    if ( did_write_value ) membus_wcache_push(the_membus, value);
+    if ( did_write_value && ! the_membus->cache_disable  ) membus_wcache_push(the_membus, value);
 #endif
 }
 
