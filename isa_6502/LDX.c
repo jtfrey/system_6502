@@ -88,7 +88,7 @@ ISA_6502_DISASM(LDX)
     
         case isa_6502_addressing_immediate:
             value = membus_rcache_pop(opcode_context->memory);      /* Value */
-            out_fmt = "LDX #$%3$02hhX {X = $%4$02hhX}";
+            out_fmt = "LDX #$%4$02hhX {X = $%4$02hhX}";
             break;
         case isa_6502_addressing_zeropage:
             value = membus_rcache_pop(opcode_context->memory);      /* Value */

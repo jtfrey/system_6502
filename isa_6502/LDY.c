@@ -88,7 +88,7 @@ ISA_6502_DISASM(LDY)
     
         case isa_6502_addressing_immediate:
             value = membus_rcache_pop(opcode_context->memory);      /* Value */
-            out_fmt = "LDY #$%3$02hhX {Y = $%4$02hhX}";
+            out_fmt = "LDY #$%4$02hhX {Y = $%4$02hhX}";
             break;
         case isa_6502_addressing_zeropage:
             value = membus_rcache_pop(opcode_context->memory);      /* Value */
