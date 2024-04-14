@@ -271,72 +271,70 @@ __membus_read_addr(
     uint16_t    addr
 )
 {
-    uint8_t     value = 0x00;
-    bool        did_read_value = false, is_looping = true;
+    uint8_t                     value = 0x00;
+    bool                        did_read_value = false, is_looping = true;
+    membus_module_tier_node_t   *tiers = (membus_module_tier_node_t*)the_membus->modules;
     
-    switch ( addr ) {
-        case MEMORY_ADDR_NMI_VECTOR:
-            did_read_value = true;
-            value = (the_membus->nmi_vector & 0x00FF);
-            break;
-        case MEMORY_ADDR_NMI_VECTOR + 1:
-            did_read_value = true;
-            value = (the_membus->nmi_vector & 0xFF00) >> 8;
-            break;
-        case MEMORY_ADDR_RES_VECTOR:
-            did_read_value = true;
-            value = (the_membus->res_vector & 0x00FF);
-            break;
-        case MEMORY_ADDR_RES_VECTOR + 1:
-            did_read_value = true;
-            value = (the_membus->res_vector & 0xFF00) >> 8;
-            break;
-        case MEMORY_ADDR_IRQ_VECTOR:
-            did_read_value = true;
-            value = (the_membus->irq_vector & 0x00FF);
-            break;
-        case MEMORY_ADDR_IRQ_VECTOR + 1:
-            did_read_value = true;
-            value = (the_membus->irq_vector & 0xFF00) >> 8;
-            break;
-        default: {
-            membus_module_tier_node_t   *tiers = (membus_module_tier_node_t*)the_membus->modules;
-            
-            if ( the_membus->pre_op ) {
-                membus_module_module_node_t *modules = ((membus_module_tier_node_t*)the_membus->pre_op)->modules;
-                
-                while ( modules && (modules->module->addr_range.addr_lo <= addr) ) {
-                    if ( memory_addr_range_does_include(&modules->module->addr_range, addr) && modules->module->read_callback )
-                        modules->module->read_callback(modules->module, addr, NULL);
-                    modules = modules->link;
-                }
+    if ( the_membus->pre_op ) {
+        membus_module_module_node_t *modules = ((membus_module_tier_node_t*)the_membus->pre_op)->modules;
+        
+        while ( modules && (modules->module->addr_range.addr_lo <= addr) ) {
+            if ( memory_addr_range_does_include(&modules->module->addr_range, addr) && modules->module->read_callback )
+                modules->module->read_callback(modules->module, addr, NULL);
+            modules = modules->link;
+        }
+    }
+    while ( is_looping && ! did_read_value && tiers ) {
+        membus_module_module_node_t *modules = tiers->modules;
+        
+        while ( is_looping && ! did_read_value && modules && (modules->module->addr_range.addr_lo <= addr) ) {
+            if ( memory_addr_range_does_include(&modules->module->addr_range, addr) && modules->module->read_callback ) {
+                membus_module_op_result_t   rc = modules->module->read_callback(modules->module, addr, &value);
+                is_looping = (rc != membus_module_op_result_not_accepted);
+                did_read_value = (rc == membus_module_op_result_accepted);
             }
-            while ( is_looping && ! did_read_value && tiers ) {
-                membus_module_module_node_t *modules = tiers->modules;
-                
-                while ( is_looping && ! did_read_value && modules && (modules->module->addr_range.addr_lo <= addr) ) {
-                    if ( memory_addr_range_does_include(&modules->module->addr_range, addr) && modules->module->read_callback ) {
-                        membus_module_op_result_t   rc = modules->module->read_callback(modules->module, addr, &value);
-                        is_looping = (rc != membus_module_op_result_not_accepted);
-                        did_read_value = (rc == membus_module_op_result_accepted);
-                    }
-                    modules = modules->link;
-                }
-                tiers = tiers->link;
+            modules = modules->link;
+        }
+        tiers = tiers->link;
+    }
+    if ( ! did_read_value ) {
+        switch ( addr ) {
+            case MEMORY_ADDR_NMI_VECTOR:
+                did_read_value = true;
+                value = (the_membus->nmi_vector & 0x00FF);
+                break;
+            case MEMORY_ADDR_NMI_VECTOR + 1:
+                did_read_value = true;
+                value = (the_membus->nmi_vector & 0xFF00) >> 8;
+                break;
+            case MEMORY_ADDR_RES_VECTOR:
+                did_read_value = true;
+                value = (the_membus->res_vector & 0x00FF);
+                break;
+            case MEMORY_ADDR_RES_VECTOR + 1:
+                did_read_value = true;
+                value = (the_membus->res_vector & 0xFF00) >> 8;
+                break;
+            case MEMORY_ADDR_IRQ_VECTOR:
+                did_read_value = true;
+                value = (the_membus->irq_vector & 0x00FF);
+                break;
+            case MEMORY_ADDR_IRQ_VECTOR + 1:
+                did_read_value = true;
+                value = (the_membus->irq_vector & 0xFF00) >> 8;
+                break;
+        }
+    }
+    if ( the_membus->post_op ) {
+        membus_module_module_node_t *modules = ((membus_module_tier_node_t*)the_membus->post_op)->modules;
+        
+        while ( modules && (modules->module->addr_range.addr_lo <= addr) ) {
+            if ( memory_addr_range_does_include(&modules->module->addr_range, addr) && modules->module->read_callback ) {
+                uint8_t     value_copy = value;
+                modules->module->read_callback(modules->module, addr, &value_copy);
             }
-            if ( the_membus->post_op ) {
-                membus_module_module_node_t *modules = ((membus_module_tier_node_t*)the_membus->post_op)->modules;
-                
-                while ( modules && (modules->module->addr_range.addr_lo <= addr) ) {
-                    if ( memory_addr_range_does_include(&modules->module->addr_range, addr) && modules->module->read_callback ) {
-                        uint8_t     value_copy = value;
-                        modules->module->read_callback(modules->module, addr, &value_copy);
-                    }
-                    modules = modules->link;
-                }
-            }
-            break;
-        }   
+            modules = modules->link;
+        }
     }
 #ifdef ENABLE_MEMBUS_CACHE
     if ( did_read_value ) membus_rcache_push(the_membus, value);
@@ -371,69 +369,67 @@ __membus_write_addr(
     uint8_t     value
 )
 {
-    bool        did_write_value = false, is_looping = true;
+    bool                        did_write_value = false, is_looping = true;
+    membus_module_tier_node_t   *tiers = (membus_module_tier_node_t*)the_membus->modules;
     
-    switch ( addr ) {
-        case MEMORY_ADDR_NMI_VECTOR:
-            did_write_value = true;
-            the_membus->nmi_vector = (the_membus->nmi_vector & 0xFF00) | value;
-            break;
-        case MEMORY_ADDR_NMI_VECTOR + 1:
-            did_write_value = true;
-            the_membus->nmi_vector = (the_membus->nmi_vector & 0x00FF) | (value << 8);
-            break;
-        case MEMORY_ADDR_RES_VECTOR:
-            did_write_value = true;
-            the_membus->res_vector = (the_membus->res_vector & 0xFF00) | value;
-            break;
-        case MEMORY_ADDR_RES_VECTOR + 1:
-            did_write_value = true;
-            the_membus->res_vector = (the_membus->res_vector & 0x00FF) | (value << 8);
-            break;
-        case MEMORY_ADDR_IRQ_VECTOR:
-            did_write_value = true;
-            the_membus->irq_vector = (the_membus->irq_vector & 0xFF00) | value;
-            break;
-        case MEMORY_ADDR_IRQ_VECTOR + 1:
-            did_write_value = true;
-            the_membus->irq_vector = (the_membus->irq_vector & 0x00FF) | (value << 8);
-            break;
-        default: {
-            membus_module_tier_node_t   *tiers = (membus_module_tier_node_t*)the_membus->modules;
-            
-            if ( the_membus->pre_op ) {
-                membus_module_module_node_t *modules = ((membus_module_tier_node_t*)the_membus->pre_op)->modules;
-                
-                while ( modules && (modules->module->addr_range.addr_lo <= addr) ) {
-                    if ( memory_addr_range_does_include(&modules->module->addr_range, addr) && modules->module->write_callback )
-                        modules->module->write_callback(modules->module, addr, 0);
-                    modules = modules->link;
-                }
+    if ( the_membus->pre_op ) {
+        membus_module_module_node_t *modules = ((membus_module_tier_node_t*)the_membus->pre_op)->modules;
+        
+        while ( modules && (modules->module->addr_range.addr_lo <= addr) ) {
+            if ( memory_addr_range_does_include(&modules->module->addr_range, addr) && modules->module->write_callback )
+                modules->module->write_callback(modules->module, addr, 0);
+            modules = modules->link;
+        }
+    }
+    while ( is_looping && ! did_write_value && tiers ) {
+        membus_module_module_node_t *modules = tiers->modules;
+        
+        while ( is_looping && ! did_write_value && modules && (modules->module->addr_range.addr_lo <= addr) ) {
+            if ( memory_addr_range_does_include(&modules->module->addr_range, addr) && modules->module->write_callback ) {
+                membus_module_op_result_t   rc = modules->module->write_callback(modules->module, addr, value);
+                is_looping = (rc != membus_module_op_result_not_accepted);
+                did_write_value = (rc == membus_module_op_result_accepted);
             }
-            while ( is_looping && ! did_write_value && tiers ) {
-                membus_module_module_node_t *modules = tiers->modules;
-                
-                while ( is_looping && ! did_write_value && modules && (modules->module->addr_range.addr_lo <= addr) ) {
-                    if ( memory_addr_range_does_include(&modules->module->addr_range, addr) && modules->module->write_callback ) {
-                        membus_module_op_result_t   rc = modules->module->write_callback(modules->module, addr, value);
-                        is_looping = (rc != membus_module_op_result_not_accepted);
-                        did_write_value = (rc == membus_module_op_result_accepted);
-                    }
-                    modules = modules->link;
-                }
-                tiers = tiers->link;
-            }
-            if ( the_membus->post_op ) {
-                membus_module_module_node_t *modules = ((membus_module_tier_node_t*)the_membus->post_op)->modules;
-                
-                while ( modules && (modules->module->addr_range.addr_lo <= addr) ) {
-                    if ( memory_addr_range_does_include(&modules->module->addr_range, addr) && modules->module->write_callback )
-                        modules->module->write_callback(modules->module, addr, value);
-                    modules = modules->link;
-                }
-            }
-            break;
-        }   
+            modules = modules->link;
+        }
+        tiers = tiers->link;
+    }
+    if ( ! did_write_value ) {
+        switch ( addr ) {
+            case MEMORY_ADDR_NMI_VECTOR:
+                did_write_value = true;
+                the_membus->nmi_vector = (the_membus->nmi_vector & 0xFF00) | value;
+                break;
+            case MEMORY_ADDR_NMI_VECTOR + 1:
+                did_write_value = true;
+                the_membus->nmi_vector = (the_membus->nmi_vector & 0x00FF) | (value << 8);
+                break;
+            case MEMORY_ADDR_RES_VECTOR:
+                did_write_value = true;
+                the_membus->res_vector = (the_membus->res_vector & 0xFF00) | value;
+                break;
+            case MEMORY_ADDR_RES_VECTOR + 1:
+                did_write_value = true;
+                the_membus->res_vector = (the_membus->res_vector & 0x00FF) | (value << 8);
+                break;
+            case MEMORY_ADDR_IRQ_VECTOR:
+                did_write_value = true;
+                the_membus->irq_vector = (the_membus->irq_vector & 0xFF00) | value;
+                break;
+            case MEMORY_ADDR_IRQ_VECTOR + 1:
+                did_write_value = true;
+                the_membus->irq_vector = (the_membus->irq_vector & 0x00FF) | (value << 8);
+                break;
+        }
+    }
+    if ( the_membus->post_op ) {
+        membus_module_module_node_t *modules = ((membus_module_tier_node_t*)the_membus->post_op)->modules;
+        
+        while ( modules && (modules->module->addr_range.addr_lo <= addr) ) {
+            if ( memory_addr_range_does_include(&modules->module->addr_range, addr) && modules->module->write_callback )
+                modules->module->write_callback(modules->module, addr, value);
+            modules = modules->link;
+        }
     }
 #ifdef ENABLE_MEMBUS_CACHE
     if ( did_write_value ) membus_wcache_push(the_membus, value);

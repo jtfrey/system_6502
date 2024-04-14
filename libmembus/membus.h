@@ -102,7 +102,7 @@ typedef membus_module_op_result_t (*membus_module_write_addr_t)(membus_module_re
 /*
  * @enum membus module mode
  *
- * Access mode for a membus module:
+ * Access mode for some membus modules:
  *
  * - membus_module_mode_rw:  addresses associated with module are read-write
  * - membus_module_mode_ro:  addresses associated with module are read-only
@@ -164,9 +164,12 @@ void membus_module_release(membus_module_ref module);
  *          bus
  *     - rw_lock: mutex used to coordinate multithreaded access to the
  *          bus
- *      - nmi_vector: special case, the word at 0xFFFA
- *      - res_vector: special case, the word at 0xFFFC
- *      - irq_vector: special case, the word at 0xFFFE
+ *     - nmi_vector: special case, the word at 0xFFFA if unhandled by
+ *          any module
+ *     - res_vector: special case, the word at 0xFFFC if unhandled by
+ *          any module
+ *     - irq_vector: special case, the word at 0xFFFE if unhandled by
+ *          any module
  *
  * If membus caching is enabled at compile time the data structure
  * will also include the read- and write-caches and their indices:
