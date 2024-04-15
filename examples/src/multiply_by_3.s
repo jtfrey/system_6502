@@ -61,7 +61,5 @@ Times3:     PHA
             
 Exit:       STA Array,X
             STA Array,Y
-            BRK
-            BRK
-            BRK
+            NOP
             

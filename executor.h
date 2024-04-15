@@ -4,7 +4,7 @@
 
 #include "system_6502_config.h"
 #include "registers.h"
-#include "membus.h"
+#include "libmembus/membus.h"
 #include "isa_6502.h"
     
 

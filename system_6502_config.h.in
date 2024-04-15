@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <unistd.h>
 #include <string.h>
 #include <fcntl.h>
@@ -41,8 +42,6 @@
 #endif
 
 #cmakedefine ISA_6502_HOST_IS_LE
-#cmakedefine ENABLE_MEMBUS_CACHE
-#cmakedefine ENABLE_MEMBUS_LOCKS
 #cmakedefine ENABLE_EXECUTOR_LOCKS
 #cmakedefine ENABLE_DISASSEMBLY
 #cmakedefine DISABLE_JMP_PAGE_BOUNDARY_BUG

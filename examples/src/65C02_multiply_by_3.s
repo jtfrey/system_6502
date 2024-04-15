@@ -67,7 +67,6 @@ Exit:       STA Array,X
             NOP
             NOP
             NOP
-Exit2:      BRK
-            BRK
-            BRK
+Exit2:      NOP
+            NOP
             

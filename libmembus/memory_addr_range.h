@@ -2,7 +2,7 @@
 #ifndef __MEMORY_ADDR_RANGE_H__
 #define __MEMORY_ADDR_RANGE_H__
 
-#include "system_6502_config.h"
+#include "system_6502_membus_config.h"
 
 /*
  * @typedef memory_addr_range_t

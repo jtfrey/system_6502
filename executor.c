@@ -1,6 +1,6 @@
 
 #include "executor.h"
-#include "membus_module_std64k.h"
+#include "libmembus/membus_module_std64k.h"
 
 typedef struct {
     executor_t          pointers;

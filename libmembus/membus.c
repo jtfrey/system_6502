@@ -670,7 +670,7 @@ membus_save_to_fd(
 #endif
     while ( addr < addr_end ) {
         uint8_t         byte_buffer[4096], *p = byte_buffer;
-        size_t          write_len = addr_end - addr + 1, xfer_len;
+        size_t          write_len = addr_end - addr, xfer_len;
         ssize_t         bytes_written;
         
         if ( write_len > sizeof(byte_buffer) ) write_len = sizeof(byte_buffer);
@@ -703,7 +703,7 @@ membus_save_to_stream(
 #endif
     while ( addr < addr_end ) {
         uint8_t         byte_buffer[4096], *p = byte_buffer;
-        size_t          write_len = addr_end - addr + 1, xfer_len;
+        size_t          write_len = addr_end - addr, xfer_len;
         ssize_t         bytes_written;
         
         if ( write_len > sizeof(byte_buffer) ) write_len = sizeof(byte_buffer);

@@ -2,7 +2,7 @@
 #ifndef __MEMBUS_H__
 #define __MEMBUS_H__
 
-#include "system_6502_config.h"
+#include "system_6502_membus_config.h"
 #include "memory_addr_range.h"
 
 /*

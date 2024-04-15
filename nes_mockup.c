@@ -1,9 +1,9 @@
 
 #include "executor.h"
 
-#include "membus_module_paged.h"
-#include "membus_module_mirror.h"
-#include "membus_private.h"
+#include "libmembus/membus_module_paged.h"
+#include "libmembus/membus_module_mirror.h"
+#include "libmembus/membus_private.h"
 
 //
 

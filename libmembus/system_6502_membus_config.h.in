@@ -1,0 +1,30 @@
+
+#ifndef __SYSTEM_6502_MEMBUS_CONFIG_H__
+#define __SYSTEM_6502_MEMBUS_CONFIG_H__
+
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <unistd.h>
+#include <string.h>
+#include <fcntl.h>
+#include <limits.h>
+
+#include <pthread.h>
+
+#cmakedefine SYSTEM_6502_NAME "@SYSTEM_6502_NAME@"
+#ifndef SYSTEM_6502_NAME
+#   define SYSTEM_6502_NAME "system_6502"
+#endif
+
+#cmakedefine SYSTEM_6502_VERSION "@SYSTEM_6502_VERSION@"
+#ifndef SYSTEM_6502_VERSION
+#   define SYSTEM_6502_VERSION "<unknown>"
+#endif
+
+#cmakedefine ISA_6502_HOST_IS_LE
+#cmakedefine ENABLE_MEMBUS_CACHE
+#cmakedefine ENABLE_MEMBUS_LOCKS
+
+#endif /* __SYSTEM_6502_MEMBUS_CONFIG_H__ */

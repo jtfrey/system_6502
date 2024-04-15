@@ -850,7 +850,7 @@ isa_6502_table_lookup_dispatch(
 
 #ifdef ENABLE_ISA_6502_TEST
 
-#include "membus_module_std64k.h"
+#include "libmembus/membus_module_std64k.h"
 
 #include <stdio.h>
 

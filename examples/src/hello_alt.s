@@ -48,7 +48,7 @@ loop:
     JSR sum_sub
     DEX
     BNE loop
-    BRK
+    JMP exit
 
 sum_sub:
     PHA
@@ -66,3 +66,5 @@ sum_sub:
     PLA
     RTS
 
+exit:
+    NOP

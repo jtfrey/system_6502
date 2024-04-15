@@ -3,7 +3,7 @@
 #define __ISA_6502_H__
 
 #include "system_6502_config.h"
-#include "membus.h"
+#include "libmembus/membus.h"
 #include "registers.h"
 
 /*
