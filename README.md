@@ -46,7 +46,7 @@ $ make
 
 ## Examples
 
-The `cc65` compiler can be used to assemble the code in the [examples](./examples) directory.  The program in [multiply_by_3.s](./examples/multiply_by_3.s) can be compiled using `cl65 -cpu 6502 -t none -o multiply_by_3.bin multiply_by_3.s` and then executed at it's origin of `$2000`:
+The `cc65` compiler can be used to assemble the code in the [examples/src](./examples/src) directory manually.  The program in [multiply_by_3.s](./examples/src/multiply_by_3.s) can be compiled using `cl65 -cpu 6502 -t none -o multiply_by_3.bin multiply_by_3.s` and then executed at it's origin of `$2000`:
 
 ```
 $ ./system_6502 -l ../examples/multiply_by_3.bin@0x2000:56 -d 0x2000:56 -q -x 0x2000:56 -s multiply_by_3.out@0x2100:0x100
@@ -80,6 +80,8 @@ $ hexdump -C multiply_by_3.out
 ```
 
 250 MHz isn't too shabby.
+
+The examples can be built from within the `examples` directory as a standalone CMake project or by configuring the overarching system_6502 CMake build with `-DENABLE_EXAMPLES_BUILD`.  In both cases, the `ca65` and `cl65` programs must be present on your PATH.
 
 ### Bit Reorder
 
