@@ -1,3 +1,4 @@
 
 #define __isa_65C02_BCS __isa_6502_BCS
+#define __isa_65C02_static_BCS __isa_6502_static_BCS
 #define __isa_65C02_disasm_BCS __isa_6502_disasm_BCS

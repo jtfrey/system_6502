@@ -22,6 +22,14 @@ ISA_6502_INSTR(PLA)
     return at_stage;
 }
 
+ISA_6502_STATIC_INSTR(PLA)
+{
+    opcode_context->registers->A = __isa_6502_pop(opcode_context->registers, opcode_context->memory);
+    registers_did_set_A(opcode_context->registers, registers_Carry_ignore);
+    opcode_context->cycle_count += 3;
+    return isa_6502_instr_stage_end;
+}
+
 ISA_6502_DISASM(PLA)
 {
 #ifdef ENABLE_DISASSEMBLY

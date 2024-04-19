@@ -99,6 +99,12 @@ target_compile_options(system_6502 PRIVATE ${CURSES_CFLAGS})
 target_link_libraries(system_6502 PRIVATE ${CURSES_LIBRARIES} Threads::Threads libmembus)
 
 #
+# The 6502 disassembler:
+#
+add_executable(disasm_6502 registers.c isa_6502.c disasm_6502.c)
+target_link_libraries(disasm_6502 PRIVATE Threads::Threads libmembus)
+
+#
 # The various test programs at this level:
 #
 if ( ENABLE_REGISTERS_TEST )

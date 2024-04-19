@@ -1,5 +1,6 @@
             .ORG $2000
 Array = $2100
+ExitValues = $FE
             LDX #$00
             LDY #$00
 Delay:      DEX
@@ -16,8 +17,10 @@ Delay:      DEX
             LDX #$00        ; Initialize the array of 256
 InitArray:  TYA             ; integers
 		    STA Array,X
-		    INY
+		    LDA #$00
 		    INX
+		    STA Array,X
+		    INY
 		    INX
 		    BNE InitArray
 
@@ -59,7 +62,5 @@ Times3:     PHA
             PLA
             RTS
             
-Exit:       STA Array,X
-            STA Array,Y
-            NOP
+Exit:       NOP
             

@@ -48,9 +48,9 @@ typedef struct registers {
     uint8_t     SR;
 } registers_t;
 
-static inline int registers_SR_get_bit(registers_t *the_registers, int which_bit)
-                    { return (the_registers->SR & which_bit) ? 1 : 0; }
-static inline void registers_SR_set_bit(registers_t *the_registers, int which_bit, int value)
+static inline uint8_t registers_SR_get_bit(registers_t *the_registers, int which_bit)
+                    { return ((the_registers->SR & which_bit) != 0) ? 1 : 0; }
+static inline void registers_SR_set_bit(registers_t *the_registers, uint8_t which_bit, uint8_t value)
                     { if ( value ) the_registers->SR |= which_bit; else the_registers->SR &= ~which_bit; }
 
 /*

@@ -1,32 +1,20 @@
 
 ISA_6502_INSTR(BRK)
 {
-    static uint16_t PC;
-    static uint8_t *PC_ptr;
-    static uint8_t SR;
+    static uint8_t  DUMMY;
     
     at_stage = isa_6502_instr_stage_next_cycle;
     
     switch ( opcode_context->cycle_count ) {
         case 1:
-            /* Add 2 to PC */
-            PC = opcode_context->registers->PC + 1;
-#ifdef ISA_6502_HOST_IS_LE
-            PC_ptr = ((uint8_t*)&PC) + 1;
-#else
-            PC_ptr = ((uint8_t*)&PC);
-#endif
+            /* BRK is essentially a zeropage instruction: */
+            DUMMY = membus_read_addr(opcode_context->memory, opcode_context->registers->PC++);
             /* Push PC[hi] */
-            __isa_6502_push(opcode_context->registers, opcode_context->memory, *PC_ptr);    
-#ifdef ISA_6502_HOST_IS_LE
-            PC_ptr--;
-#else
-            PC_ptr++;
-#endif
+            __isa_6502_push(opcode_context->registers, opcode_context->memory, (opcode_context->registers->PC & 0xFF00) >> 8);
             break;
         case 2:
             /* Push PC[lo] */
-            __isa_6502_push(opcode_context->registers, opcode_context->memory, *PC_ptr);
+            __isa_6502_push(opcode_context->registers, opcode_context->memory, (opcode_context->registers->PC & 0x00FF));
             break;
         case 3:
             /* Push SR */
@@ -38,30 +26,40 @@ ISA_6502_INSTR(BRK)
             break;
         case 5:
             /* Fetch program counter from NMI vector: */
-#ifdef ISA_6502_HOST_IS_LE
-            PC_ptr = ((uint8_t*)&opcode_context->registers->PC) + 1;
-#else
-            PC_ptr = ((uint8_t*)&opcode_context->registers->PC);
-#endif
-            *PC_ptr = membus_read_addr(opcode_context->memory, MEMORY_ADDR_NMI_VECTOR);
-#ifdef ISA_6502_HOST_IS_LE
-            PC_ptr--;
-#else
-            PC_ptr++;
-#endif
+            opcode_context->registers->PC = membus_read_addr(opcode_context->memory, MEMORY_ADDR_NMI_VECTOR);
             break;
         case 6:
-            *PC_ptr = membus_read_addr(opcode_context->memory, MEMORY_ADDR_NMI_VECTOR + 1);
+            opcode_context->registers->PC |= membus_read_addr(opcode_context->memory, MEMORY_ADDR_NMI_VECTOR+1) << 8;
             at_stage = isa_6502_instr_stage_end;
             break;
     }
     return at_stage;
 }
 
+ISA_6502_STATIC_INSTR(BRK)
+{
+    uint8_t     DUMMY = membus_read_addr(opcode_context->memory, opcode_context->registers->PC++);
+    
+    /* Push PC[hi] */
+    __isa_6502_push(opcode_context->registers, opcode_context->memory, (opcode_context->registers->PC & 0xFF00) >> 8);
+    /* Push PC[lo] */
+    __isa_6502_push(opcode_context->registers, opcode_context->memory, (opcode_context->registers->PC & 0x00FF));
+    /* Push SR */
+    __isa_6502_push(opcode_context->registers, opcode_context->memory, opcode_context->registers->SR | register_SR_Bit_B);
+    /* Set Interrupt-disable flag */
+    registers_SR_set_bit(opcode_context->registers, register_SR_Bit_I, 1);
+    /* Fetch program counter from NMI vector: */
+    opcode_context->registers->PC = membus_read_addr(opcode_context->memory, MEMORY_ADDR_NMI_VECTOR);
+    opcode_context->registers->PC |= membus_read_addr(opcode_context->memory, MEMORY_ADDR_NMI_VECTOR+1) << 8;
+    opcode_context->cycle_count += 6;
+    return isa_6502_instr_stage_end;
+}
+
 ISA_6502_DISASM(BRK)
 {
 #ifdef ENABLE_DISASSEMBLY
-    return snprintf(buffer, buffer_len, "BRK (=> $%04hX)", opcode_context->registers->PC);
+    uint8_t     value = membus_rcache_pop(opcode_context->memory);
+    return snprintf(buffer, buffer_len, "BRK (=> $%04hX, MARKER=$%02hhX)", opcode_context->registers->PC, value);
 #else
     return 0;
 #endif

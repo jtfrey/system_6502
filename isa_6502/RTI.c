@@ -1,45 +1,49 @@
 
 ISA_6502_INSTR(RTI)
 {
-    static uint8_t  *PC_ptr;
-    static uint8_t  ALU;
+    static uint16_t ADDR16;
+    static uint8_t  SR;
     
     at_stage = isa_6502_instr_stage_next_cycle;
     
     switch ( opcode_context->cycle_count ) {
         case 1:
             /* Pop the SR */
-            ALU = __isa_6502_pop(opcode_context->registers, opcode_context->memory);
+            SR = __isa_6502_pop(opcode_context->registers, opcode_context->memory);
             break;
         case 2:
             /* Clear the B/IGN flags */
-            ALU &= ~(register_SR_Bit_B | register_SR_Bit_IGN);
+            SR &= ~(register_SR_Bit_B | register_SR_Bit_IGN);
             break;
         case 3:
-            opcode_context->registers->SR = ALU;
+            opcode_context->registers->SR = SR;
             break;
         case 4:
-            /* Prep for read: */
-#ifdef ISA_6502_HOST_IS_LE
-            PC_ptr = ((uint8_t*)&opcode_context->registers->PC);
-#else
-            PC_ptr = ((uint8_t*)&opcode_context->registers->PC) + 1;
-#endif
             /* Pop low-byte of PC */
-            *PC_ptr = __isa_6502_pop(opcode_context->registers, opcode_context->memory);
-#ifdef ISA_6502_HOST_IS_LE
-            PC_ptr++;
-#else
-            PC_ptr--;
-#endif
+            ADDR16 = __isa_6502_pop(opcode_context->registers, opcode_context->memory);
             break;
         case 5:
             /* Pop high-byte of PC */
-            *PC_ptr = __isa_6502_pop(opcode_context->registers, opcode_context->memory);
+            opcode_context->registers->PC = ADDR16 | (__isa_6502_pop(opcode_context->registers, opcode_context->memory) << 8);
             at_stage = isa_6502_instr_stage_end;
             break;
     }
     return at_stage;
+}
+
+ISA_6502_STATIC_INSTR(RTI)
+{
+    uint16_t ADDR16;
+    uint8_t  SR;
+    
+    /* Pop the SR -- clear the B/IGN flags in the process: */
+    opcode_context->registers->SR = __isa_6502_pop(opcode_context->registers, opcode_context->memory) & ~(register_SR_Bit_B | register_SR_Bit_IGN);
+    /* Pop low-byte of PC */
+    ADDR16 = __isa_6502_pop(opcode_context->registers, opcode_context->memory);
+    /* Pop high-byte of PC */
+    opcode_context->registers->PC = ADDR16 | (__isa_6502_pop(opcode_context->registers, opcode_context->memory) << 8);
+    opcode_context->cycle_count += 5;
+    return isa_6502_instr_stage_end;
 }
 
 ISA_6502_DISASM(RTI)

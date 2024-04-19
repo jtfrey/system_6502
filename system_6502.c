@@ -63,21 +63,24 @@ our_executor_stage_callback(
 const struct option cli_options[] = {
         { "help",       no_argument,            NULL,   'h' },
         { "version",    no_argument,            NULL,   'V' },
-        { "load",       required_argument,      NULL,   'l' },
+        { "bload",      required_argument,      NULL,   'l' },
         { "save",       required_argument,      NULL,   's' },
         { "poke",       required_argument,      NULL,   'p' },
         { "dump",       required_argument,      NULL,   'd' },
         { "new-vm",     no_argument,            NULL,   'n' },
-        { "reset",      no_argument,            NULL,   'r' },
+        { "reset",      no_argument,            NULL,   'R' },
         { "boot",       no_argument,            NULL,   'b' },
         { "exec",       required_argument,      NULL,   'x' },
         { "verbose",    no_argument,            NULL,   'v' },
         { "quiet",      no_argument,            NULL,   'q' },
         { "irq+nmi",    no_argument,            NULL,   '1' },
         { "isa",        required_argument,      NULL,   'i' },
+        { "disasm",     required_argument,      NULL,   'D' },
+        { "brun",       required_argument,      NULL,   'r' },
+        { "mode",       required_argument,      NULL,   'm' },
         { NULL,         no_argument,            NULL,    0  }
     };
-const char *cli_options_str = "hVl:s:p:d:nrbx:vq1i:";
+const char *cli_options_str = "hVl:s:p:d:nRbx:vq1i:D:r:m:";
 
 //
 
@@ -97,17 +100,18 @@ usage(
         "\n"
         "  data manipulation options:\n"
         "\n"
-        "    --load/-l <file-spec>          fill memory with bytes from a file\n"
+        "    --bload/-l <file-spec>         fill memory with bytes from a file\n"
         "    --save/-s {+}<file-spec>       write contents of memory to a file; a leading\n"
         "                                   plus sign indicates append to the file\n"
         "    --poke/-p <fill-spec>          write a byte or word to a memory region\n"
         "    --dump/-d <mem-spec>           do a hexdump of a memory region\n"
+        "    --disasm/-D <mem-spec>         do a static disassembly of a memory region\n"
         "\n"
         "  execution options:\n"
         "\n"
         "    --new-vm/-n                    destroy and recreate the VM\n"
         "    --isa/-i <isa-dialect>         choose the 6502 dialect; default is 6502\n"
-        "    --reset/-r                     reset the virtual machine\n"
+        "    --reset/-R                     reset the virtual machine\n"
         "    --boot/-b                      execute a boot from the RES vector\n"
         "    --exec/-x <mem-spec>           execute instructions in the specified\n"
         "                                   memory region\n"
@@ -115,6 +119,15 @@ usage(
         "                                   (the default)\n"
         "    --quiet/-q                     display as little execution status as\n"
         "                                   possible\n"
+        "    --irq+nmi/-1                   display only IRQ and DMA events\n"
+        "    --mode/-m <exec-mode>          select execution mode options; the default\n"
+        "                                   is +staged,+verbose,+locks\n"
+        "\n"
+        "  combined options:\n"
+        "\n"
+        "    --brun/-r <file>{@<addr>}     load all bytes from the given file either at 0x2000\n"
+        "                                  or the given address and execute in from the base\n"
+        "                                  address through the last byte loaded\n"
         "\n"
         "    <addr> = $X{X..} | 0xX{X..} | 0#{#..} | #{#..} | IRQ{±#} | NMI{±#} | RES{±#}\n"
         "    <len> = $X{X..} | 0xX{X..} | 0#{#..} | #{#..} | *\n"
@@ -123,9 +136,103 @@ usage(
         "    <byte-word> = $XX | $XXXX | 0xXX | 0xXXXX\n"
         "    <fill-spec> = <byte-word>@<mem-spec>\n"
         "    <isa-dialect> = 6502 | 65C02\n"
+        "    <exec-mode-opt> = {+|-}staged | {+|-}verbose} | {+|-}locks\n"
+        "    <exec-mode> = {<exec-mode-opt>}{,<exec-mode-opt>{,...}}\n"
         "\n",
         exe
     );
+}
+
+//
+
+const char*
+parse_exec_mode(
+    const char                  *s,
+    isa_6502_opcode_exec_mode_t *exec_mode
+)
+{
+    isa_6502_opcode_exec_mode_t m = 0;
+    
+    while ( *s ) {
+        bool        is_okay;
+        bool        is_negated = false;
+        
+        if ( *s == '+' ) {
+            s++;
+        } else if ( *s == '-' ) {
+            is_negated = true;
+            s++;
+        }
+        if ( strncasecmp(s, "staged", 6) == 0 ) {
+            if ( is_negated )
+                m = (m & ~isa_6502_opcode_exec_mode_mask) | isa_6502_opcode_exec_mode_static;
+            else
+                m = (m & ~isa_6502_opcode_exec_mode_mask) | isa_6502_opcode_exec_mode_staged;
+            s += 6;
+        }
+        else if ( strncasecmp(s, "static", 6) == 0 ) {
+            if ( ! is_negated )
+                m = (m & ~isa_6502_opcode_exec_mode_mask) | isa_6502_opcode_exec_mode_static;
+            else
+                m = (m & ~isa_6502_opcode_exec_mode_mask) | isa_6502_opcode_exec_mode_staged;
+            s += 6;
+        }
+        else if ( strncasecmp(s, "verbose", 7) == 0 ) {
+            if ( is_negated )
+                m = (m & ~isa_6502_opcode_exec_mode_verbose);
+            else
+                m = (m & ~isa_6502_opcode_exec_mode_verbose) | isa_6502_opcode_exec_mode_verbose;
+            s += 7;
+        }
+        else if ( strncasecmp(s, "normal", 6) == 0 ) {
+            if ( ! is_negated )
+                m = (m & ~isa_6502_opcode_exec_mode_verbose);
+            else
+                m = (m & ~isa_6502_opcode_exec_mode_verbose) | isa_6502_opcode_exec_mode_verbose;
+            s += 6;
+        }
+        else if ( strncasecmp(s, "locks", 5) == 0 ) {
+            if ( is_negated )
+                m = (m & ~isa_6502_opcode_exec_mode_no_locking) | isa_6502_opcode_exec_mode_no_locking;
+            else
+                m = (m & ~isa_6502_opcode_exec_mode_no_locking);
+            s += 5;
+        }
+        else if ( strncasecmp(s, "nolocks", 7) == 0 ) {
+            if ( ! is_negated )
+                m = (m & ~isa_6502_opcode_exec_mode_no_locking) | isa_6502_opcode_exec_mode_no_locking;
+            else
+                m = (m & ~isa_6502_opcode_exec_mode_no_locking);
+            s += 7;
+        }
+        else {
+            fprintf(stderr, "WARNING:  invalid execution mode: %s\n", s);
+            return NULL;
+        }
+        
+        // Skip past any punctuation:
+        is_okay = true;
+        while ( is_okay && *s ) {
+            switch ( *s ) {
+                case ',':
+                case ' ':
+                case '\t':
+                case ';':
+                case ':':
+                    s++;
+                    break;
+                default:
+                    is_okay = false;
+                    break;
+            }
+        }
+    }
+    if ( *s ) {
+        fprintf(stderr, "WARNING:  invalid execution mode: %s\n", s);
+        return NULL;
+    }
+    *exec_mode = m;
+    return s;
 }
 
 //
@@ -474,6 +581,7 @@ main(
     executor_t                  *the_vm = executor_alloc_with_default_components();
     isa_6502_dialect_t          the_dialect = isa_6502_dialect_base;
     executor_stage_callback_t   exec_callback = our_executor_stage_callback;
+    isa_6502_opcode_exec_mode_t exec_mode = isa_6502_opcode_exec_mode_default;
     isa_6502_instr_stage_t      exec_callback_event_mask = isa_6502_instr_stage_all;
     pthread_t                   tui_input_thread;
     
@@ -501,7 +609,7 @@ main(
                 isa_6502_table_init(the_vm->isa, the_dialect);
                 break;
             
-            case 'r':
+            case 'R':
                 printf("INFO:  hardware reset of the VM...\n");
                 executor_hard_reset(the_vm);
                 break;
@@ -510,6 +618,7 @@ main(
                 printf("INFO:  software reset (from RES vector)...\n");
                 executor_soft_reset(
                         the_vm,
+                        exec_mode,
                         exec_callback,
                         exec_callback_event_mask
                     );
@@ -527,6 +636,7 @@ main(
                     gettimeofday(&t0, NULL);
                     total_cycles = executor_launch_in_address_range(
                                             the_vm,
+                                            exec_mode,
                                             exec_callback,
                                             exec_callback_event_mask,
                                             memory_addr_range_with_lo_and_hi(addr_start, addr_end),
@@ -575,6 +685,65 @@ main(
                     }
                     free(file_path);
                 }
+                break;
+            }
+            
+            case 'r': {
+                char        *file_path_copy, *file_path_end = optarg;
+                uint16_t    addr_start;
+                bool        is_ok = true;
+                
+                while ( *file_path_end && (*file_path_end != '@') ) file_path_end++;
+                if ( *file_path_end == '@' ) {
+                    file_path_copy = (char*)malloc(file_path_end - optarg + 1);
+                    if ( file_path_copy ) {
+                        memcpy(file_path_copy, optarg, file_path_end - optarg);
+                        file_path_copy[file_path_end - optarg ] = '\0';
+                        if ( ! parse_addr(file_path_end + 1, &addr_start) ) is_ok = false;
+                    }
+                } else {
+                    addr_start = 0x2000;
+                    file_path_copy = optarg;
+                }
+                if ( is_ok && file_path_copy && *file_path_copy ) {
+                    int         bin_fd = open(file_path_copy, O_RDONLY);
+                    
+                    if ( bin_fd ) {
+                        ssize_t             did_read = membus_load_from_fd(
+                                                            the_vm->memory,
+                                                            memory_addr_range_with_lo_and_hi(addr_start, 0xFFFF),
+                                                            bin_fd);
+                        
+                        printf("INFO:  read %ld ($%04hX) bytes into memory range $%04hX-$%04hX\n",
+                                did_read,
+                                (uint16_t)did_read,
+                                addr_start,
+                                addr_start + (uint16_t)did_read - 1
+                            );
+                        close(bin_fd);
+                        if ( did_read > 0 ) {
+                            struct timeval          t0, t1;
+                            uint64_t                total_cycles;
+                            double                  cycles_per_sec;
+                            memory_addr_range_t     exec_range = memory_addr_range_with_lo_and_len(addr_start, did_read);
+                            
+                            printf("INFO:  executing code in memory range $%04hX-$%04hX\n", addr_start, memory_addr_range_get_end(&exec_range));
+                            gettimeofday(&t0, NULL);
+                            total_cycles = executor_launch_in_address_range(
+                                                    the_vm,
+                                                    exec_mode,
+                                                    exec_callback,
+                                                    exec_callback_event_mask,
+                                                    exec_range,
+                                                    addr_start
+                                                );
+                            gettimeofday(&t1, NULL);
+                            cycles_per_sec = (double)total_cycles / ((double)(t1.tv_sec - t0.tv_sec) + 1e-6 * (double)(t1.tv_usec - t0.tv_usec));
+                            printf("INFO:  %.2lg cycles per second\n", cycles_per_sec);
+                        }
+                    }
+                }
+                if ( file_path_copy && (file_path_copy != optarg) ) free(file_path_copy);
                 break;
             }
             
@@ -638,10 +807,24 @@ main(
                 break;
             }
             
+            case 'D': {
+                uint16_t        addr_start, addr_end;
+                
+                if ( parse_mem_spec(optarg, &addr_start, &addr_end) ) {
+                    isa_6502_static_disassembly(the_vm->isa, the_vm->memory, memory_addr_range_with_lo_and_hi(addr_start, addr_end), stdout);
+                }
+                break;
+            }
+            
             case 'i':
                 if ( parse_isa_dialect(optarg, &the_dialect) ) {
                     isa_6502_table_init(the_vm->isa, the_dialect);
                 }
+                break;
+                
+            case 'm':
+                if ( ! parse_exec_mode(optarg, &exec_mode) ) exit(EINVAL);
+                printf("INFO:  Execution mode %08X\n", exec_mode);
                 break;
         }
     }

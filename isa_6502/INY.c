@@ -6,6 +6,14 @@ ISA_6502_INSTR(INY)
     return isa_6502_instr_stage_end;
 }
 
+ISA_6502_STATIC_INSTR(INY)
+{
+    opcode_context->cycle_count++;
+    opcode_context->registers->Y++;
+    registers_did_set_Y(opcode_context->registers, registers_Carry_ignore);
+    return isa_6502_instr_stage_end;
+}
+
 ISA_6502_DISASM(INY)
 {
 #ifdef ENABLE_DISASSEMBLY

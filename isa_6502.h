@@ -143,27 +143,63 @@ typedef uint32_t isa_6502_instr_stage_t;
 typedef isa_6502_instr_stage_t (*isa_6502_instr_exec_callback_t)(isa_6502_instr_context_t *opcode_context, isa_6502_instr_stage_t at_stage);
 
 /*
- * @typedef isa_6502_instr_disasm_callback_t
+ * @typedef isa_6502_instr_inline_disasm_callback_t
  *
- * Type of the function that handles disassembly of an executed
- * instruction.  This only works if the memory system was compiled
+ * Type of the function that handles disassembly of an instruction
+ * during execution.  This only works if the memory system was compiled
  * with read/write caches so that operands and outputs can be
  * retrieved quickly and easily.
  */
-typedef int (*isa_6502_instr_disasm_callback_t)(isa_6502_instr_context_t *opcode_context, char *buffer, int buffer_len);
+typedef int (*isa_6502_instr_inline_disasm_callback_t)(isa_6502_instr_context_t *opcode_context, char *buffer, int buffer_len);
+
+/*
+ * @enum 6502 opcode execution mode
+ *
+ * Every opcode can be executed in two modes:
+ *
+ * - staged:  each clock cycle is represented as a distinct call to
+ *            the execution function; a 4 cycle instruction will require
+ *            3 function calls to complete
+ * - static:  the instruction is executed with a single function call
+ *            and the opcode_context's cycle_count will be updated with
+ *            the total real cycles that would have been consumed
+ *  - normal: the callback_fn IS NOT invoked as the pipeline proceeds
+ *  - verbose: the callback_fn IS invoked as the pipeline proceeds
+ */
+enum {
+    isa_6502_opcode_exec_mode_staged = 0,
+    isa_6502_opcode_exec_mode_static = 1,
+    isa_6502_opcode_exec_mode_mask = 0x000F,
+    //
+    isa_6502_opcode_exec_mode_locking = 0 << 30,
+    isa_6502_opcode_exec_mode_no_locking = 1 << 30,
+    //
+    isa_6502_opcode_exec_mode_normal = 0 << 31,
+    isa_6502_opcode_exec_mode_verbose = 1 << 31,
+    //
+    isa_6502_opcode_exec_mode_default = isa_6502_opcode_exec_mode_staged | isa_6502_opcode_exec_mode_verbose
+};
+
+/*
+ * @typedef isa_6502_opcode_exec_mode_t
+ *
+ * The type used to represent opcode execution mode values.
+ */
+typedef unsigned int isa_6502_opcode_exec_mode_t;
 
 /*
  * @typedef isa_6502_opcode_dispatch_t
  *
- * Data structure to hold the callback function associated with
- * an ISA table slot and the addressing mode of the opcode in
- * question.
+ * Data structure to hold the callback functions associated with
+ * an ISA table slot, mnemonic, mnemonic+operand description, and
+ * the addressing mode of the opcode question.
  */
 typedef struct isa_6502_opcode_dispatch {
-    isa_6502_instr_exec_callback_t      exec_fn;
-    isa_6502_instr_disasm_callback_t    disasm_fn;
-    const char                          *description;
-    isa_6502_addressing_t               addressing_mode;
+    isa_6502_instr_exec_callback_t              exec_fn[2];
+    isa_6502_instr_inline_disasm_callback_t     inline_disasm_fn;
+    const char                                  mnemonic[6];
+    const char                                  *description;
+    isa_6502_addressing_t                       addressing_mode;
 } isa_6502_opcode_dispatch_t;
 
 /*
@@ -287,5 +323,18 @@ uint8_t isa_6502_pop(registers_t *the_registers, membus_t *the_membus);
  * could alter the functioning of running code!
  */
 void isa_6502_push(registers_t *the_registers, membus_t *the_membus, uint8_t value);
+
+/*
+ * @functon isa_6502_static_disassembly
+ *
+ * Given an ISA table, a memory array, and a range of addresses in that
+ * memory array, disassemble the machine code.  The resulting assembly code
+ * is written to the given FILE stream in the basic format:
+ *
+ *     <address> : <opcode-byte> <operand1-byte> {<operand2-byte>}    <mnemonic> <symbolic-operands>
+ *
+ */
+void isa_6502_static_disassembly(isa_6502_table_t *isa_table, membus_t *the_membus, memory_addr_range_t addr_range, FILE *stream);
+
 
 #endif /* __ISA_6502_H__ */

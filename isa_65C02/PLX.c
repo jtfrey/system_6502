@@ -22,6 +22,14 @@ ISA_65C02_INSTR(PLX)
     return at_stage;
 }
 
+ISA_65C02_STATIC_INSTR(PLX)
+{
+    opcode_context->registers->X = __isa_6502_pop(opcode_context->registers, opcode_context->memory);
+    registers_did_set_X(opcode_context->registers, registers_Carry_ignore);
+    opcode_context->cycle_count += 3;
+    return isa_6502_instr_stage_end;
+}
+
 ISA_65C02_DISASM(PLX)
 {
 #ifdef ENABLE_DISASSEMBLY

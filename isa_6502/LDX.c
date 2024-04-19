@@ -1,61 +1,60 @@
 
 ISA_6502_INSTR(LDX)
 {
-    static uint16_t ADDR = 0x0000, ADDR_pre_index;
-    static uint8_t  *ADDR_ptr, *ALU_ptr;
-    static uint16_t ALU, ALU_pre_index;
+    static uint16_t ADDR16, ADDR16_pre_index;
+    static uint8_t  ADDR8;
+    static uint8_t  OPERAND;
     
     at_stage = isa_6502_instr_stage_next_cycle;
     
     switch ( opcode_context->cycle_count ) {
         case 1:
-            ADDR = 0x0000;
-            if ( opcode_context->addressing_mode == isa_6502_addressing_immediate ) {
-                ALU = membus_read_addr(opcode_context->memory, opcode_context->registers->PC++);
-                at_stage = isa_6502_instr_stage_end;
-            } else {
-#ifdef ISA_6502_HOST_IS_LE
-                ADDR_ptr = ((uint8_t*)&ADDR);
-#else
-                ADDR_ptr = ((uint8_t*)&ADDR) + 1;
-#endif
-                *ADDR_ptr = membus_read_addr(opcode_context->memory, opcode_context->registers->PC++);
-#ifdef ISA_6502_HOST_IS_LE
-                ADDR_ptr++;
-#else
-                ADDR_ptr--;
-#endif
+            switch ( opcode_context->addressing_mode ) {
+                case isa_6502_addressing_immediate:
+                    OPERAND = membus_read_addr(opcode_context->memory, opcode_context->registers->PC++);
+                    at_stage = isa_6502_instr_stage_end;
+                    break;
+                case isa_6502_addressing_zeropage:
+                case isa_6502_addressing_zeropage_x_indexed:
+                    ADDR8 = membus_read_addr(opcode_context->memory, opcode_context->registers->PC++);
+                    break;
+                case isa_6502_addressing_absolute:
+                case isa_6502_addressing_absolute_x_indexed:
+                    ADDR16 = membus_read_addr(opcode_context->memory, opcode_context->registers->PC++);
+                    break;
             }
             break;
-        
         case 2:
             switch ( opcode_context->addressing_mode ) {
                 case isa_6502_addressing_zeropage:
-                    ALU = membus_read_addr(opcode_context->memory, ADDR);
+                    OPERAND = membus_read_addr(opcode_context->memory, ADDR8);
                     at_stage = isa_6502_instr_stage_end;
                     break;
-                case isa_6502_addressing_zeropage_y_indexed:
-                    ADDR = (ADDR + opcode_context->registers->Y) & 0x00FF;
+                case isa_6502_addressing_zeropage_x_indexed:
+                    ADDR8 += opcode_context->registers->X;
                     break;
                 case isa_6502_addressing_absolute:
-                case isa_6502_addressing_absolute_y_indexed:
-                    *ADDR_ptr = membus_read_addr(opcode_context->memory, opcode_context->registers->PC++);
+                case isa_6502_addressing_absolute_x_indexed:
+                    ADDR16 |= membus_read_addr(opcode_context->memory, opcode_context->registers->PC++) << 8;
                     break;
             }
             break;
         
         case 3:
             switch ( opcode_context->addressing_mode ) {
-                case isa_6502_addressing_zeropage_y_indexed:
-                case isa_6502_addressing_absolute:
-                    ALU = membus_read_addr(opcode_context->memory, ADDR);
+                case isa_6502_addressing_zeropage_x_indexed:
+                    OPERAND = membus_read_addr(opcode_context->memory, ADDR8);
                     at_stage = isa_6502_instr_stage_end;
                     break;
-                case isa_6502_addressing_absolute_y_indexed:
-                    ADDR_pre_index = ADDR;
-                    ADDR += opcode_context->registers->Y;
-                    if ( (ADDR_pre_index & 0xFF00) == (ADDR & 0xFF00) ) {
-                        ALU = membus_read_addr(opcode_context->memory, ADDR);
+                case isa_6502_addressing_absolute:
+                    OPERAND = membus_read_addr(opcode_context->memory, ADDR16);
+                    at_stage = isa_6502_instr_stage_end;
+                    break;
+                case isa_6502_addressing_absolute_x_indexed:
+                    ADDR16_pre_index = ADDR16;
+                    ADDR16 += opcode_context->registers->X;
+                    if ( (ADDR16_pre_index & 0xFF00) == (ADDR16 & 0xFF00) ) {
+                        OPERAND = membus_read_addr(opcode_context->memory, ADDR16);
                         at_stage = isa_6502_instr_stage_end;
                     }
                     break;
@@ -64,17 +63,60 @@ ISA_6502_INSTR(LDX)
         
         case 4:
             switch ( opcode_context->addressing_mode ) {
-                case isa_6502_addressing_absolute_y_indexed:
-                    ALU = membus_read_addr(opcode_context->memory, ADDR);
+                case isa_6502_addressing_absolute_x_indexed:
+                    OPERAND = membus_read_addr(opcode_context->memory, ADDR16);
                     at_stage = isa_6502_instr_stage_end;
                     break;
             }
             break;
     }
     if ( at_stage == isa_6502_instr_stage_end) {
-        opcode_context->registers->X = ALU;
+        opcode_context->registers->X = OPERAND;
         registers_did_set_X(opcode_context->registers, registers_Carry_ignore);
     }
+    return at_stage;
+}
+
+ISA_6502_STATIC_INSTR(LDX)
+{
+    uint16_t    ADDR16, ADDR16_pre_index;
+    uint8_t     ADDR8;
+    uint8_t     OPERAND;
+    uint8_t     cycle_count;
+
+    switch ( opcode_context->addressing_mode ) {
+        case isa_6502_addressing_immediate:
+            OPERAND = membus_read_addr(opcode_context->memory, opcode_context->registers->PC++);
+            cycle_count = 1;
+            break;
+        case isa_6502_addressing_zeropage:
+            ADDR8 = membus_read_addr(opcode_context->memory, opcode_context->registers->PC++);
+            OPERAND = membus_read_addr(opcode_context->memory, ADDR8);
+            cycle_count = 2;
+            break;
+        case isa_6502_addressing_zeropage_x_indexed:
+            ADDR8 = membus_read_addr(opcode_context->memory, opcode_context->registers->PC++) + opcode_context->registers->X;
+            OPERAND = membus_read_addr(opcode_context->memory, ADDR8);
+            cycle_count = 4;
+            break;
+        case isa_6502_addressing_absolute:
+            ADDR16 = membus_read_addr(opcode_context->memory, opcode_context->registers->PC++);
+            ADDR16 |= membus_read_addr(opcode_context->memory, opcode_context->registers->PC++) << 8;
+            OPERAND = membus_read_addr(opcode_context->memory, ADDR16);
+            cycle_count = 4;
+            break;
+        case isa_6502_addressing_absolute_x_indexed:
+            ADDR16 = membus_read_addr(opcode_context->memory, opcode_context->registers->PC++);
+            ADDR16 |= membus_read_addr(opcode_context->memory, opcode_context->registers->PC++) << 8;
+            ADDR16_pre_index = ADDR16;
+            ADDR16 += opcode_context->registers->X;
+            OPERAND = membus_read_addr(opcode_context->memory, ADDR16);
+            cycle_count = 4 + ((ADDR16_pre_index & 0xFF00) != (ADDR16 & 0xFF00));
+            break;
+    }
+    opcode_context->cycle_count += cycle_count;
+    opcode_context->registers->X = OPERAND;
+    registers_did_set_X(opcode_context->registers, registers_Carry_ignore);
     return at_stage;
 }
 

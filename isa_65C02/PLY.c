@@ -22,6 +22,14 @@ ISA_65C02_INSTR(PLY)
     return at_stage;
 }
 
+ISA_65C02_STATIC_INSTR(PLY)
+{
+    opcode_context->registers->Y = __isa_6502_pop(opcode_context->registers, opcode_context->memory);
+    registers_did_set_Y(opcode_context->registers, registers_Carry_ignore);
+    opcode_context->cycle_count += 3;
+    return isa_6502_instr_stage_end;
+}
+
 ISA_65C02_DISASM(PLY)
 {
 #ifdef ENABLE_DISASSEMBLY

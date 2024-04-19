@@ -1,64 +1,79 @@
 
 ISA_6502_INSTR(JMP)
 {
-    static uint16_t ADDR;
-    static uint8_t *ADDR_ptr;
+    static uint16_t ADDR16, INDIRECT;
     
     at_stage = isa_6502_instr_stage_next_cycle;
     
     switch ( opcode_context->cycle_count ) {
         case 1:
-#ifdef ISA_6502_HOST_IS_LE
-            ADDR_ptr = ((uint8_t*)&ADDR);
-#else
-            ADDR_ptr = ((uint8_t*)&ADDR) + 1;
-#endif
             /* Read low byte: */
-            *ADDR_ptr = membus_read_addr(opcode_context->memory, opcode_context->registers->PC++);
-#ifdef ISA_6502_HOST_IS_LE
-            ADDR_ptr++;
-#else
-            ADDR_ptr--;
-#endif
+            ADDR16 = membus_read_addr(opcode_context->memory, opcode_context->registers->PC++);
             break;
         case 2:
             /* Read high byte: */
-            *ADDR_ptr = membus_read_addr(opcode_context->memory, opcode_context->registers->PC++);
+            ADDR16 |= membus_read_addr(opcode_context->memory, opcode_context->registers->PC++) << 8;
             if ( opcode_context->addressing_mode == isa_6502_addressing_absolute ) {
-                opcode_context->registers->PC = ADDR;
                 at_stage = isa_6502_instr_stage_end;
             }
             break;
         case 3:
-#ifdef ISA_6502_HOST_IS_LE
-            ADDR_ptr = ((uint8_t*)&opcode_context->registers->PC);
-#else
-            ADDR_ptr = ((uint8_t*)&opcode_context->registers->PC) + 1;
-#endif
             /* Read low byte: */
-            *ADDR_ptr = membus_read_addr(opcode_context->memory, ADDR);
+            INDIRECT = membus_read_addr(opcode_context->memory, ADDR16);
 #ifndef DISABLE_JMP_PAGE_BOUNDARY_BUG
-            if ( (ADDR & 0x00FF) == 0x00FF ) {
-                ADDR &= 0xFF00;
+            if ( (ADDR16 & 0x00FF) == 0x00FF ) {
+                ADDR16 &= 0xFF00;
             } else {
-                ADDR++;
+                ADDR16++;
             }
 #else
-            ADDR++;
-#endif
-#ifdef ISA_6502_HOST_IS_LE
-            ADDR_ptr++;
-#else
-            ADDR_ptr--;
+            ADDR16++;
 #endif
             break;
         case 4:
             /* Read high byte: */
-            *ADDR_ptr = membus_read_addr(opcode_context->memory, ADDR);
+            ADDR16 = (membus_read_addr(opcode_context->memory, ADDR16) << 8) | INDIRECT;
             at_stage = isa_6502_instr_stage_end;
             break;
     }
+    if ( at_stage == isa_6502_instr_stage_end ) opcode_context->registers->PC = ADDR16;
     return at_stage;
+}
+
+ISA_6502_STATIC_INSTR(JMP)
+{
+    uint16_t    ADDR16;
+    uint8_t     cycle_count;
+    
+    switch ( opcode_context->addressing_mode ) {
+        case isa_6502_addressing_absolute:
+            ADDR16 = membus_read_addr(opcode_context->memory, opcode_context->registers->PC++);
+            ADDR16 |= membus_read_addr(opcode_context->memory, opcode_context->registers->PC++) << 8;
+            cycle_count = 2;
+            break;
+        case isa_6502_addressing_indirect: {
+            uint16_t    INDIRECT;
+            
+            ADDR16 = membus_read_addr(opcode_context->memory, opcode_context->registers->PC++);
+            ADDR16 |= membus_read_addr(opcode_context->memory, opcode_context->registers->PC++) << 8;
+            INDIRECT = membus_read_addr(opcode_context->memory, ADDR16);
+#ifndef DISABLE_JMP_PAGE_BOUNDARY_BUG
+            if ( (ADDR16 & 0x00FF) == 0x00FF ) {
+                ADDR16 &= 0xFF00;
+            } else {
+                ADDR16++;
+            }
+#else
+            ADDR16++;
+#endif
+            ADDR16 = (membus_read_addr(opcode_context->memory, ADDR16) << 8) | INDIRECT;
+            cycle_count = 4;
+            break;
+        }
+    }
+    opcode_context->cycle_count += cycle_count;
+    opcode_context->registers->PC = ADDR16;
+    return isa_6502_instr_stage_end;
 }
 
 ISA_6502_DISASM(JMP)

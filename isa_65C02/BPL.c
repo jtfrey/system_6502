@@ -1,3 +1,4 @@
 
 #define __isa_65C02_BPL __isa_6502_BPL
+#define __isa_65C02_static_BPL __isa_6502_static_BPL
 #define __isa_65C02_disasm_BPL __isa_6502_disasm_BPL

@@ -1,50 +1,47 @@
 
 ISA_6502_INSTR(ROL)
 {
-    static uint16_t ADDR = 0x0000;
-    static uint8_t  *ADDR_ptr;
-    static uint16_t ALU;
-    bool            is_penultimate = false;
+    static uint16_t ADDR16;
+    static uint8_t  ADDR8;
+    static uint16_t OPERAND;
+    static bool     is_penultimate;
     
     at_stage = isa_6502_instr_stage_next_cycle;
     
     switch ( opcode_context->cycle_count ) {
         case 1:
-            ADDR = 0x0000;
-            if ( opcode_context->addressing_mode == isa_6502_addressing_accumulator ) {
-                ALU = ((uint16_t)opcode_context->registers->A << 1) | registers_SR_get_bit(opcode_context->registers, register_SR_Bit_C);
-                opcode_context->registers->A = ALU & 0x00FF;
-                registers_did_set_A(
-                        opcode_context->registers,
-                        ((ALU & 0xFF00) != 0) ? registers_Carry_set : registers_Carry_clear
-                    );
-                return isa_6502_instr_stage_end;
-            } else {
-#ifdef ISA_6502_HOST_IS_LE
-                ADDR_ptr = ((uint8_t*)&ADDR);
-#else
-                ADDR_ptr = ((uint8_t*)&ADDR) + 1;
-#endif
-                *ADDR_ptr = membus_read_addr(opcode_context->memory, opcode_context->registers->PC++);
-#ifdef ISA_6502_HOST_IS_LE
-                ADDR_ptr++;
-#else
-                ADDR_ptr--;
-#endif
-            }
-            break;
-        
-        case 2:
+            is_penultimate = false;
             switch ( opcode_context->addressing_mode ) {
+                case isa_6502_addressing_accumulator: {
+                    OPERAND = ((uint16_t)opcode_context->registers->A << 1) | registers_SR_get_bit(opcode_context->registers, register_SR_Bit_C);
+                    opcode_context->registers->A = OPERAND & 0x00FF;
+                    registers_did_set_A(
+                            opcode_context->registers,
+                            ((OPERAND & 0xFF00) != 0) ? registers_Carry_set : registers_Carry_clear
+                        );
+                    return isa_6502_instr_stage_end;
+                }
                 case isa_6502_addressing_zeropage:
-                    ALU = membus_read_addr(opcode_context->memory, ADDR);
-                    break;
                 case isa_6502_addressing_zeropage_x_indexed:
-                    ADDR = (ADDR + opcode_context->registers->X) & 0x00FF;
+                    ADDR8 = membus_read_addr(opcode_context->memory, opcode_context->registers->PC++);
                     break;
                 case isa_6502_addressing_absolute:
                 case isa_6502_addressing_absolute_x_indexed:
-                    *ADDR_ptr = membus_read_addr(opcode_context->memory, opcode_context->registers->PC++);
+                    ADDR16 = membus_read_addr(opcode_context->memory, opcode_context->registers->PC++);
+                    break;
+            }
+            break;
+        case 2:
+            switch ( opcode_context->addressing_mode ) {
+                case isa_6502_addressing_zeropage:
+                    OPERAND = membus_read_addr(opcode_context->memory, ADDR8);
+                    break;
+                case isa_6502_addressing_zeropage_x_indexed:
+                    ADDR8 += opcode_context->registers->X;
+                    break;
+                case isa_6502_addressing_absolute:
+                case isa_6502_addressing_absolute_x_indexed:
+                    ADDR16 |= membus_read_addr(opcode_context->memory, opcode_context->registers->PC++) << 8;
                     break;
             }
             break;
@@ -55,11 +52,13 @@ ISA_6502_INSTR(ROL)
                     is_penultimate = true;
                     break;
                 case isa_6502_addressing_zeropage_x_indexed:
+                    OPERAND = membus_read_addr(opcode_context->memory, ADDR8);
+                    break;
                 case isa_6502_addressing_absolute:
-                    ALU = membus_read_addr(opcode_context->memory, ADDR);
+                    OPERAND = membus_read_addr(opcode_context->memory, ADDR16);
                     break;
                 case isa_6502_addressing_absolute_x_indexed:
-                    ADDR += opcode_context->registers->X;
+                    ADDR16 += opcode_context->registers->X;
                     break;
             }
             break;
@@ -67,6 +66,7 @@ ISA_6502_INSTR(ROL)
         case 4:
             switch ( opcode_context->addressing_mode ) {
                 case isa_6502_addressing_zeropage:
+                    ADDR16 = ADDR8;
                     at_stage = isa_6502_instr_stage_end;
                     break;
                 case isa_6502_addressing_zeropage_x_indexed:
@@ -74,7 +74,7 @@ ISA_6502_INSTR(ROL)
                     is_penultimate = true;
                     break;
                 case isa_6502_addressing_absolute_x_indexed:
-                    ALU = membus_read_addr(opcode_context->memory, ADDR);
+                    OPERAND = membus_read_addr(opcode_context->memory, ADDR16);
                     break;
             }
             break;
@@ -82,6 +82,9 @@ ISA_6502_INSTR(ROL)
         case 5:
             switch ( opcode_context->addressing_mode ) {
                 case isa_6502_addressing_zeropage_x_indexed:
+                    ADDR16 = ADDR8;
+                    at_stage = isa_6502_instr_stage_end;
+                    break;
                 case isa_6502_addressing_absolute:
                     at_stage = isa_6502_instr_stage_end;
                     break;
@@ -96,17 +99,74 @@ ISA_6502_INSTR(ROL)
             break;
     }
     if ( is_penultimate ) {
-        ALU = (ALU << 1) | registers_SR_get_bit(opcode_context->registers, register_SR_Bit_C);
+        OPERAND = (OPERAND << 1) | registers_SR_get_bit(opcode_context->registers, register_SR_Bit_C);
         registers_status_with_value(
                 opcode_context->registers,
-                ALU & 0x00FF,
-                ((ALU & 0xFF00) != 0) ? registers_Carry_set : registers_Carry_clear
+                OPERAND & 0x00FF,
+                ((OPERAND & 0xFF00) != 0) ? registers_Carry_set : registers_Carry_clear
             );
     }
     else if ( at_stage == isa_6502_instr_stage_end) {
-        membus_write_addr(opcode_context->memory, ADDR, ALU & 0x00FF);
+        membus_write_addr(opcode_context->memory, ADDR16, OPERAND & 0x00FF);
     }
     return at_stage;
+}
+
+ISA_6502_STATIC_INSTR(ROL)
+{
+    uint16_t    ADDR16;
+    uint8_t     ADDR8;
+    uint16_t    OPERAND;
+    uint8_t     cycle_count;
+    bool        is_carry;
+    
+    switch ( opcode_context->addressing_mode ) {
+        case isa_6502_addressing_accumulator: {
+            OPERAND = ((uint16_t)opcode_context->registers->A << 1) | registers_SR_get_bit(opcode_context->registers, register_SR_Bit_C);
+            opcode_context->registers->A = OPERAND & 0x00FF;
+            registers_did_set_A(
+                    opcode_context->registers,
+                    ((OPERAND & 0xFF00) != 0) ? registers_Carry_set : registers_Carry_clear
+                );
+            opcode_context->cycle_count += 1;
+            return isa_6502_instr_stage_end;
+        }
+        
+        case isa_6502_addressing_zeropage:
+            ADDR8 = membus_read_addr(opcode_context->memory, opcode_context->registers->PC++);
+            OPERAND = membus_read_addr(opcode_context->memory, ADDR8);
+            ADDR16 = ADDR8;
+            cycle_count = 4;
+            break;
+        case isa_6502_addressing_zeropage_x_indexed:
+            ADDR8 = membus_read_addr(opcode_context->memory, opcode_context->registers->PC++) + opcode_context->registers->X;
+            OPERAND = membus_read_addr(opcode_context->memory, ADDR8);
+            ADDR16 = ADDR8;
+            cycle_count = 5;
+            break;
+        case isa_6502_addressing_absolute:
+            ADDR16 = membus_read_addr(opcode_context->memory, opcode_context->registers->PC++);
+            ADDR16 |= membus_read_addr(opcode_context->memory, opcode_context->registers->PC++) << 8;
+            OPERAND = membus_read_addr(opcode_context->memory, ADDR16);
+            cycle_count = 5;
+            break;
+        case isa_6502_addressing_absolute_x_indexed:
+            ADDR16 = membus_read_addr(opcode_context->memory, opcode_context->registers->PC++);
+            ADDR16 |= membus_read_addr(opcode_context->memory, opcode_context->registers->PC++) << 8;
+            ADDR16 += opcode_context->registers->X;
+            OPERAND = membus_read_addr(opcode_context->memory, ADDR16);
+            cycle_count = 6;
+            break;
+    }
+    opcode_context->cycle_count += cycle_count;
+    OPERAND = (OPERAND << 1) | registers_SR_get_bit(opcode_context->registers, register_SR_Bit_C);
+    registers_status_with_value(
+            opcode_context->registers,
+            OPERAND & 0x00FF,
+            ((OPERAND & 0xFF00) != 0) ? registers_Carry_set : registers_Carry_clear
+        );
+    membus_write_addr(opcode_context->memory, ADDR16, OPERAND & 0x00FF);
+    return isa_6502_instr_stage_end;
 }
 
 ISA_6502_DISASM(ROL)

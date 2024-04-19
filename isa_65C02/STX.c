@@ -1,3 +1,4 @@
 
 #define __isa_65C02_STX __isa_6502_STX
+#define __isa_65C02_static_STX __isa_6502_static_STX
 #define __isa_65C02_disasm_STX __isa_6502_disasm_STX

@@ -103,8 +103,8 @@ To summarize, then:
 
 | Example | Code Size | Relative Size |Cycle Count | Relative Count |
 | :-----: | :-------- | ------------: |----------: | -------------: |
-|    1    | 20 bytes  |               |        156 |          +117% |
-|    2    | 27 bytes  |         +35%  |        141 |           +96% |
+|    1    | 20 bytes  |               |        155 |          +117% |
+|    2    | 27 bytes  |         +35%  |        140 |           +96% |
 |    3    | 44 bytes  |        +120%  |         72 |                |
 |    4    | 52 bytes  |        +160%  |        100 |           +39% |
 |    5    | 47 bytes  |        +135%  |         72 |                |
@@ -119,12 +119,12 @@ However, the loop has gotten very tight now — just two bit-shift instructions
 
 | Example | Code Size | Relative Size |Cycle Count | Relative Count |
 | :-----: | :-------- | ------------: |----------: | -------------: |
-|    1    | 20 bytes  |               |        156 |          +117% |
-|    2    | 27 bytes  |         +35%  |        141 |           +96% |
+|    1    | 20 bytes  |               |        155 |          +117% |
+|    2    | 27 bytes  |         +35%  |        140 |           +96% |
 |    3    | 44 bytes  |        +120%  |         72 |                |
 |    4    | 52 bytes  |        +160%  |        100 |           +39% |
 |    5    | 47 bytes  |        +135%  |         72 |                |
-|    6    | 15 bytes  |         -25%  |         96 |           +33% |
+|    6    | 15 bytes  |         -25%  |         95 |           +33% |
 |    7    | 28 bytes  |         +40%  |         59 |           -18% |
 
 Example 3 is easily expressed in higher-level languages like C.  But example 7 leverages the properties of 6502 machine code to produce a time- and memory-efficient solution.

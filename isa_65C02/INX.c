@@ -1,3 +1,4 @@
 
 #define __isa_65C02_INX __isa_6502_INX
+#define __isa_65C02_static_INX __isa_6502_static_INX
 #define __isa_65C02_disasm_INX __isa_6502_disasm_INX

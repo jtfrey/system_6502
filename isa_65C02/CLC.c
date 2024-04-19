@@ -1,3 +1,4 @@
 
 #define __isa_65C02_CLC __isa_6502_CLC
+#define __isa_65C02_static_CLC __isa_6502_static_CLC
 #define __isa_65C02_disasm_CLC __isa_6502_disasm_CLC

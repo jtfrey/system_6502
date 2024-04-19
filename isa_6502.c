@@ -14,7 +14,9 @@ const char* isa_6502_addressing_modes_descriptions[isa_6502_addressing_max] = {
             "relative",
             "zero page",
             "x-indexed zero page",
-            "y-indexed zero page"
+            "y-indexed zero page",
+            "zero page indirect",
+            "absolute x-indexed indirect"
         };
 
 //
@@ -32,7 +34,9 @@ const int isa_6502_addressing_operand_counts[isa_6502_addressing_max] = {
             1,  /* relative */
             1,  /* zero page */
             1,  /* x-indexed zero page */
-            1   /* y-indexed zero page */
+            1,  /* y-indexed zero page */
+            1,  /* zero page indirect */
+            2,  /* absolute x-indexed indirect */
         };
 
 //
@@ -81,7 +85,7 @@ isa_6502_push(
 ////
 //
 
-#define UNUSED_OPCODE   { NULL, NULL, "???", isa_6502_addressing_undefined }
+#define UNUSED_OPCODE   { {NULL, NULL}, NULL, "???", "??? ????", isa_6502_addressing_undefined }
 
 //
 ////
@@ -93,6 +97,24 @@ __isa_6502_ ## OPCODE( \
     isa_6502_instr_context_t    *opcode_context, \
     isa_6502_instr_stage_t      at_stage \
 )
+
+//
+
+#define ISA_6502_STATIC_INSTR(OPCODE) \
+static isa_6502_instr_stage_t \
+__isa_6502_static_ ## OPCODE( \
+    isa_6502_instr_context_t    *opcode_context, \
+    isa_6502_instr_stage_t      at_stage \
+)
+#define ISA_6502_STATIC_INSTR_EMPTY(OPCODE) \
+static isa_6502_instr_stage_t \
+__isa_6502_static_ ## OPCODE( \
+    isa_6502_instr_context_t    *opcode_context, \
+    isa_6502_instr_stage_t      at_stage \
+) \
+{ \
+    return isa_6502_instr_stage_end; \
+}
 
 //
 
@@ -176,250 +198,250 @@ static isa_6502_table_t __isa_6502_table = {
                 /* C = 0 */
                 {
                     /* A = 0 */
-                    { __isa_6502_BRK, __isa_6502_disasm_BRK, "BRK", isa_6502_addressing_implied },
+                    { { __isa_6502_BRK, __isa_6502_static_BRK }, __isa_6502_disasm_BRK, "BRK", "BRK", isa_6502_addressing_implied },
                     UNUSED_OPCODE,
-                    { __isa_6502_PHP, __isa_6502_disasm_PHP, "PHP", isa_6502_addressing_implied },
+                    { { __isa_6502_PHP, __isa_6502_static_PHP }, __isa_6502_disasm_PHP, "PHP", "PHP", isa_6502_addressing_implied },
                     UNUSED_OPCODE,
-                    { __isa_6502_BPL, __isa_6502_disasm_BPL, "BPL $XX", isa_6502_addressing_relative },
+                    { { __isa_6502_BPL, __isa_6502_static_BPL }, __isa_6502_disasm_BPL, "BPL", "BPL $XX", isa_6502_addressing_relative },
                     UNUSED_OPCODE,
-                    { __isa_6502_CLC, __isa_6502_disasm_CLC, "CLC", isa_6502_addressing_implied },
+                    { { __isa_6502_CLC, __isa_6502_static_CLC }, __isa_6502_disasm_CLC, "CLC", "CLC", isa_6502_addressing_implied },
                     UNUSED_OPCODE
                 },{
                     /* A = 1 */
-                    { __isa_6502_JSR, __isa_6502_disasm_JSR, "JSR $XXXX", isa_6502_addressing_absolute },
-                    { __isa_6502_BIT, __isa_6502_disasm_BIT, "BIT $XX", isa_6502_addressing_zeropage },
-                    { __isa_6502_PLP, __isa_6502_disasm_PLP, "PLP", isa_6502_addressing_implied },
-                    { __isa_6502_BIT, __isa_6502_disasm_BIT, "BIT $XXXX", isa_6502_addressing_absolute },
-                    { __isa_6502_BMI, __isa_6502_disasm_BMI, "BMI $XX", isa_6502_addressing_relative },
+                    { { __isa_6502_JSR, __isa_6502_static_JSR }, __isa_6502_disasm_JSR, "JSR", "JSR $XXXX", isa_6502_addressing_absolute },
+                    { { __isa_6502_BIT, __isa_6502_static_BIT }, __isa_6502_disasm_BIT, "BIT", "BIT $XX", isa_6502_addressing_zeropage },
+                    { { __isa_6502_PLP, __isa_6502_static_PLP }, __isa_6502_disasm_PLP, "PLP", "PLP", isa_6502_addressing_implied },
+                    { { __isa_6502_BIT, __isa_6502_static_BIT }, __isa_6502_disasm_BIT, "BIT", "BIT $XXXX", isa_6502_addressing_absolute },
+                    { { __isa_6502_BMI, __isa_6502_static_BMI }, __isa_6502_disasm_BMI, "BMI", "BMI $XX", isa_6502_addressing_relative },
                     UNUSED_OPCODE,
-                    { __isa_6502_SEC, __isa_6502_disasm_SEC, "SEC", isa_6502_addressing_implied },
+                    { { __isa_6502_SEC, __isa_6502_static_SEC }, __isa_6502_disasm_SEC, "SEC", "SEC", isa_6502_addressing_implied },
                     UNUSED_OPCODE
                 },{
                     /* A = 2 */
-                    { __isa_6502_RTI, __isa_6502_disasm_RTI, "RTI", isa_6502_addressing_implied },
+                    { { __isa_6502_RTI, __isa_6502_static_RTI }, __isa_6502_disasm_RTI, "RTI", "RTI", isa_6502_addressing_implied },
                     UNUSED_OPCODE,
-                    { __isa_6502_PHA, __isa_6502_disasm_PHA, "PHA", isa_6502_addressing_implied },
-                    { __isa_6502_JMP, __isa_6502_disasm_JMP, "JMP $XXXX", isa_6502_addressing_absolute },
-                    { __isa_6502_BVC, __isa_6502_disasm_BVC, "BVC $XX", isa_6502_addressing_relative },
+                    { { __isa_6502_PHA, __isa_6502_static_PHA }, __isa_6502_disasm_PHA, "PHA", "PHA", isa_6502_addressing_implied },
+                    { { __isa_6502_JMP, __isa_6502_static_JMP }, __isa_6502_disasm_JMP, "JMP", "JMP $XXXX", isa_6502_addressing_absolute },
+                    { { __isa_6502_BVC, __isa_6502_static_BVC }, __isa_6502_disasm_BVC, "BVC", "BVC $XX", isa_6502_addressing_relative },
                     UNUSED_OPCODE,
-                    { __isa_6502_CLI, __isa_6502_disasm_CLI, "CLI", isa_6502_addressing_implied },
+                    { { __isa_6502_CLI, __isa_6502_static_CLI }, __isa_6502_disasm_CLI, "CLI", "CLI", isa_6502_addressing_implied },
                     UNUSED_OPCODE
                 },{
                     /* A = 3 */
-                    { __isa_6502_RTS, __isa_6502_disasm_RTS, "RTS", isa_6502_addressing_implied },
+                    { { __isa_6502_RTS, __isa_6502_static_RTS }, __isa_6502_disasm_RTS, "RTS", "RTS", isa_6502_addressing_implied },
                     UNUSED_OPCODE,
-                    { __isa_6502_PLA, __isa_6502_disasm_PLA, "PLA", isa_6502_addressing_implied },
-                    { __isa_6502_JMP, __isa_6502_disasm_JMP, "JMP ($XXXX)", isa_6502_addressing_indirect },
-                    { __isa_6502_BVS, __isa_6502_disasm_BVS, "BVS $XX", isa_6502_addressing_relative },
+                    { { __isa_6502_PLA, __isa_6502_static_PLA }, __isa_6502_disasm_PLA, "PLA", "PLA", isa_6502_addressing_implied },
+                    { { __isa_6502_JMP, __isa_6502_static_JMP }, __isa_6502_disasm_JMP, "JMP", "JMP ($XXXX)", isa_6502_addressing_indirect },
+                    { { __isa_6502_BVS, __isa_6502_static_BVS }, __isa_6502_disasm_BVS, "BVS", "BVS $XX", isa_6502_addressing_relative },
                     UNUSED_OPCODE,
-                    { __isa_6502_SEI, __isa_6502_disasm_SEI, "SEI", isa_6502_addressing_implied },
+                    { { __isa_6502_SEI, __isa_6502_static_SEI }, __isa_6502_disasm_SEI, "SEI", "SEI", isa_6502_addressing_implied },
                     UNUSED_OPCODE
                 },{
                     /* A = 4 */
                     UNUSED_OPCODE,
-                    { __isa_6502_STY, __isa_6502_disasm_STY, "STY $XX", isa_6502_addressing_zeropage },
-                    { __isa_6502_DEY, __isa_6502_disasm_DEY, "DEY", isa_6502_addressing_implied },
-                    { __isa_6502_STY, __isa_6502_disasm_STY, "STY $XXXX", isa_6502_addressing_absolute },
-                    { __isa_6502_BCC, __isa_6502_disasm_BCC, "BCC $XX", isa_6502_addressing_relative },
-                    { __isa_6502_STY, __isa_6502_disasm_STY, "STY $XX,X", isa_6502_addressing_zeropage_x_indexed },
-                    { __isa_6502_TYA, __isa_6502_disasm_TYA, "TYA", isa_6502_addressing_implied },
+                    { { __isa_6502_STY, __isa_6502_static_STY }, __isa_6502_disasm_STY, "STY", "STY $XX", isa_6502_addressing_zeropage },
+                    { { __isa_6502_DEY, __isa_6502_static_DEY }, __isa_6502_disasm_DEY, "DEY", "DEY", isa_6502_addressing_implied },
+                    { { __isa_6502_STY, __isa_6502_static_STY }, __isa_6502_disasm_STY, "STY", "STY $XXXX", isa_6502_addressing_absolute },
+                    { { __isa_6502_BCC, __isa_6502_static_BCC }, __isa_6502_disasm_BCC, "BCC", "BCC $XX", isa_6502_addressing_relative },
+                    { { __isa_6502_STY, __isa_6502_static_STY }, __isa_6502_disasm_STY, "STY", "STY $XX,X", isa_6502_addressing_zeropage_x_indexed },
+                    { { __isa_6502_TYA, __isa_6502_static_TYA }, __isa_6502_disasm_TYA, "TYA", "TYA", isa_6502_addressing_implied },
                     UNUSED_OPCODE
                 },{
                     /* A = 5 */
-                    { __isa_6502_LDY, __isa_6502_disasm_LDY, "LDY #$XX", isa_6502_addressing_immediate },
-                    { __isa_6502_LDY, __isa_6502_disasm_LDY, "LDY $XX", isa_6502_addressing_zeropage },
-                    { __isa_6502_TAY, __isa_6502_disasm_TAY, "TAY", isa_6502_addressing_implied },
-                    { __isa_6502_LDY, __isa_6502_disasm_LDY, "LDY $XXXX", isa_6502_addressing_absolute },
-                    { __isa_6502_BCS, __isa_6502_disasm_BCS, "BCS $XX", isa_6502_addressing_relative },
-                    { __isa_6502_LDY, __isa_6502_disasm_LDY, "LDY $XX,X", isa_6502_addressing_zeropage_x_indexed },
-                    { __isa_6502_CLV, __isa_6502_disasm_CLV, "CLV", isa_6502_addressing_implied },
-                    { __isa_6502_LDY, __isa_6502_disasm_LDY, "LDY $XXXX,X", isa_6502_addressing_absolute_x_indexed }
+                    { { __isa_6502_LDY, __isa_6502_static_LDY }, __isa_6502_disasm_LDY, "LDY", "LDY #$XX", isa_6502_addressing_immediate },
+                    { { __isa_6502_LDY, __isa_6502_static_LDY }, __isa_6502_disasm_LDY, "LDY", "LDY $XX", isa_6502_addressing_zeropage },
+                    { { __isa_6502_TAY, __isa_6502_static_TAY }, __isa_6502_disasm_TAY, "TAY", "TAY", isa_6502_addressing_implied },
+                    { { __isa_6502_LDY, __isa_6502_static_LDY }, __isa_6502_disasm_LDY, "LDY", "LDY $XXXX", isa_6502_addressing_absolute },
+                    { { __isa_6502_BCS, __isa_6502_static_BCS }, __isa_6502_disasm_BCS, "BCS", "BCS $XX", isa_6502_addressing_relative },
+                    { { __isa_6502_LDY, __isa_6502_static_LDY }, __isa_6502_disasm_LDY, "LDY", "LDY $XX,X", isa_6502_addressing_zeropage_x_indexed },
+                    { { __isa_6502_CLV, __isa_6502_static_CLV }, __isa_6502_disasm_CLV, "CLV", "CLV", isa_6502_addressing_implied },
+                    { { __isa_6502_LDY, __isa_6502_static_LDY }, __isa_6502_disasm_LDY, "LDY", "LDY $XXXX,X", isa_6502_addressing_absolute_x_indexed }
                 },{
                     /* A = 6 */
-                    { __isa_6502_CPY, __isa_6502_disasm_CPY, "CPY #$XX", isa_6502_addressing_immediate },
-                    { __isa_6502_CPY, __isa_6502_disasm_CPY, "CPY $XX", isa_6502_addressing_zeropage },
-                    { __isa_6502_INY, __isa_6502_disasm_INY, "INY", isa_6502_addressing_implied },
-                    { __isa_6502_CPY, __isa_6502_disasm_CPY, "CPY $XXXX", isa_6502_addressing_absolute },
-                    { __isa_6502_BNE, __isa_6502_disasm_BNE, "BNE $XX", isa_6502_addressing_relative },
+                    { { __isa_6502_CPY, __isa_6502_static_CPY }, __isa_6502_disasm_CPY, "CPY", "CPY #$XX", isa_6502_addressing_immediate },
+                    { { __isa_6502_CPY, __isa_6502_static_CPY }, __isa_6502_disasm_CPY, "CPY", "CPY $XX", isa_6502_addressing_zeropage },
+                    { { __isa_6502_INY, __isa_6502_static_INY }, __isa_6502_disasm_INY, "INY", "INY", isa_6502_addressing_implied },
+                    { { __isa_6502_CPY, __isa_6502_static_CPY }, __isa_6502_disasm_CPY, "CPY", "CPY $XXXX", isa_6502_addressing_absolute },
+                    { { __isa_6502_BNE, __isa_6502_static_BNE }, __isa_6502_disasm_BNE, "BNE", "BNE $XX", isa_6502_addressing_relative },
                     UNUSED_OPCODE,
-                    { __isa_6502_CLD, __isa_6502_disasm_CLD, "CLD", isa_6502_addressing_implied },
+                    { { __isa_6502_CLD, __isa_6502_static_CLD }, __isa_6502_disasm_CLD, "CLD", "CLD", isa_6502_addressing_implied },
                     UNUSED_OPCODE
                 },{
                     /* A = 7 */
-                    { __isa_6502_CPX, __isa_6502_disasm_CPX, "CPX #$XX", isa_6502_addressing_immediate },
-                    { __isa_6502_CPX, __isa_6502_disasm_CPX, "CPX $XX", isa_6502_addressing_zeropage },
-                    { __isa_6502_INX, __isa_6502_disasm_INX, "INX", isa_6502_addressing_implied },
-                    { __isa_6502_CPX, __isa_6502_disasm_CPX, "CPX $XXXX", isa_6502_addressing_absolute },
-                    { __isa_6502_BEQ, __isa_6502_disasm_BEQ, "BEQ $XX", isa_6502_addressing_relative },
+                    { { __isa_6502_CPX, __isa_6502_static_CPX }, __isa_6502_disasm_CPX, "CPX", "CPX #$XX", isa_6502_addressing_immediate },
+                    { { __isa_6502_CPX, __isa_6502_static_CPX }, __isa_6502_disasm_CPX, "CPX", "CPX $XX", isa_6502_addressing_zeropage },
+                    { { __isa_6502_INX, __isa_6502_static_INX }, __isa_6502_disasm_INX, "INX", "INX", isa_6502_addressing_implied },
+                    { { __isa_6502_CPX, __isa_6502_static_CPX }, __isa_6502_disasm_CPX, "CPX", "CPX $XXXX", isa_6502_addressing_absolute },
+                    { { __isa_6502_BEQ, __isa_6502_static_BEQ }, __isa_6502_disasm_BEQ, "BEQ", "BEQ $XX", isa_6502_addressing_relative },
                     UNUSED_OPCODE,
-                    { __isa_6502_SED, __isa_6502_disasm_SED, "SED", isa_6502_addressing_implied },
+                    { { __isa_6502_SED, __isa_6502_static_SED }, __isa_6502_disasm_SED, "SED", "SED", isa_6502_addressing_implied },
                     UNUSED_OPCODE
                 }
             }, {
                 /* C = 1 */
                 {
                     /* A = 0 */
-                    { __isa_6502_ORA, __isa_6502_disasm_ORA, "ORA ($XX,X)", isa_6502_addressing_x_indexed_indirect },
-                    { __isa_6502_ORA, __isa_6502_disasm_ORA, "ORA $XX", isa_6502_addressing_zeropage },
-                    { __isa_6502_ORA, __isa_6502_disasm_ORA, "ORA #$XX", isa_6502_addressing_immediate },
-                    { __isa_6502_ORA, __isa_6502_disasm_ORA, "ORA $XXXX", isa_6502_addressing_absolute },
-                    { __isa_6502_ORA, __isa_6502_disasm_ORA, "ORA ($XX),Y", isa_6502_addressing_indirect_y_indexed },
-                    { __isa_6502_ORA, __isa_6502_disasm_ORA, "ORA $XX,X", isa_6502_addressing_zeropage_x_indexed },
-                    { __isa_6502_ORA, __isa_6502_disasm_ORA, "ORA $XXXX,Y", isa_6502_addressing_absolute_y_indexed },
-                    { __isa_6502_ORA, __isa_6502_disasm_ORA, "ORA $XXXX,X", isa_6502_addressing_absolute_x_indexed }
+                    { { __isa_6502_ORA, __isa_6502_static_ORA }, __isa_6502_disasm_ORA, "ORA", "ORA ($XX,X)", isa_6502_addressing_x_indexed_indirect },
+                    { { __isa_6502_ORA, __isa_6502_static_ORA }, __isa_6502_disasm_ORA, "ORA", "ORA $XX", isa_6502_addressing_zeropage },
+                    { { __isa_6502_ORA, __isa_6502_static_ORA }, __isa_6502_disasm_ORA, "ORA", "ORA #$XX", isa_6502_addressing_immediate },
+                    { { __isa_6502_ORA, __isa_6502_static_ORA }, __isa_6502_disasm_ORA, "ORA", "ORA $XXXX", isa_6502_addressing_absolute },
+                    { { __isa_6502_ORA, __isa_6502_static_ORA }, __isa_6502_disasm_ORA, "ORA", "ORA ($XX),Y", isa_6502_addressing_indirect_y_indexed },
+                    { { __isa_6502_ORA, __isa_6502_static_ORA }, __isa_6502_disasm_ORA, "ORA", "ORA $XX,X", isa_6502_addressing_zeropage_x_indexed },
+                    { { __isa_6502_ORA, __isa_6502_static_ORA }, __isa_6502_disasm_ORA, "ORA", "ORA $XXXX,Y", isa_6502_addressing_absolute_y_indexed },
+                    { { __isa_6502_ORA, __isa_6502_static_ORA }, __isa_6502_disasm_ORA, "ORA", "ORA $XXXX,X", isa_6502_addressing_absolute_x_indexed }
                 },{
                     /* A = 1 */
-                    { __isa_6502_AND, __isa_6502_disasm_AND, "AND ($XX,X)", isa_6502_addressing_x_indexed_indirect },
-                    { __isa_6502_AND, __isa_6502_disasm_AND, "AND $XX", isa_6502_addressing_zeropage },
-                    { __isa_6502_AND, __isa_6502_disasm_AND, "AND #$XX", isa_6502_addressing_immediate },
-                    { __isa_6502_AND, __isa_6502_disasm_AND, "AND $XXXX", isa_6502_addressing_absolute },
-                    { __isa_6502_AND, __isa_6502_disasm_AND, "AND ($XX),Y", isa_6502_addressing_indirect_y_indexed },
-                    { __isa_6502_AND, __isa_6502_disasm_AND, "AND $XX,X", isa_6502_addressing_zeropage_x_indexed },
-                    { __isa_6502_AND, __isa_6502_disasm_AND, "AND $XXXX,Y", isa_6502_addressing_absolute_y_indexed },
-                    { __isa_6502_AND, __isa_6502_disasm_AND, "AND $XXXX,X", isa_6502_addressing_absolute_x_indexed }
+                    { { __isa_6502_AND, __isa_6502_static_AND }, __isa_6502_disasm_AND, "AND", "AND ($XX,X)", isa_6502_addressing_x_indexed_indirect },
+                    { { __isa_6502_AND, __isa_6502_static_AND }, __isa_6502_disasm_AND, "AND", "AND $XX", isa_6502_addressing_zeropage },
+                    { { __isa_6502_AND, __isa_6502_static_AND }, __isa_6502_disasm_AND, "AND", "AND #$XX", isa_6502_addressing_immediate },
+                    { { __isa_6502_AND, __isa_6502_static_AND }, __isa_6502_disasm_AND, "AND", "AND $XXXX", isa_6502_addressing_absolute },
+                    { { __isa_6502_AND, __isa_6502_static_AND }, __isa_6502_disasm_AND, "AND", "AND ($XX),Y", isa_6502_addressing_indirect_y_indexed },
+                    { { __isa_6502_AND, __isa_6502_static_AND }, __isa_6502_disasm_AND, "AND", "AND $XX,X", isa_6502_addressing_zeropage_x_indexed },
+                    { { __isa_6502_AND, __isa_6502_static_AND }, __isa_6502_disasm_AND, "AND", "AND $XXXX,Y", isa_6502_addressing_absolute_y_indexed },
+                    { { __isa_6502_AND, __isa_6502_static_AND }, __isa_6502_disasm_AND, "AND", "AND $XXXX,X", isa_6502_addressing_absolute_x_indexed }
                 },{
                     /* A = 2 */
-                    { __isa_6502_EOR, __isa_6502_disasm_EOR, "EOR ($XX,X)", isa_6502_addressing_x_indexed_indirect },
-                    { __isa_6502_EOR, __isa_6502_disasm_EOR, "EOR $XX", isa_6502_addressing_zeropage },
-                    { __isa_6502_EOR, __isa_6502_disasm_EOR, "EOR #$XX", isa_6502_addressing_immediate },
-                    { __isa_6502_EOR, __isa_6502_disasm_EOR, "EOR $XXXX", isa_6502_addressing_absolute },
-                    { __isa_6502_EOR, __isa_6502_disasm_EOR, "EOR ($XX),Y", isa_6502_addressing_indirect_y_indexed },
-                    { __isa_6502_EOR, __isa_6502_disasm_EOR, "EOR $XX,X", isa_6502_addressing_zeropage_x_indexed },
-                    { __isa_6502_EOR, __isa_6502_disasm_EOR, "EOR $XXXX,Y", isa_6502_addressing_absolute_y_indexed },
-                    { __isa_6502_EOR, __isa_6502_disasm_EOR, "EOR $XXXX,X", isa_6502_addressing_absolute_x_indexed }
+                    { { __isa_6502_EOR, __isa_6502_static_EOR }, __isa_6502_disasm_EOR, "EOR", "EOR ($XX,X)", isa_6502_addressing_x_indexed_indirect },
+                    { { __isa_6502_EOR, __isa_6502_static_EOR }, __isa_6502_disasm_EOR, "EOR", "EOR $XX", isa_6502_addressing_zeropage },
+                    { { __isa_6502_EOR, __isa_6502_static_EOR }, __isa_6502_disasm_EOR, "EOR", "EOR #$XX", isa_6502_addressing_immediate },
+                    { { __isa_6502_EOR, __isa_6502_static_EOR }, __isa_6502_disasm_EOR, "EOR", "EOR $XXXX", isa_6502_addressing_absolute },
+                    { { __isa_6502_EOR, __isa_6502_static_EOR }, __isa_6502_disasm_EOR, "EOR", "EOR ($XX),Y", isa_6502_addressing_indirect_y_indexed },
+                    { { __isa_6502_EOR, __isa_6502_static_EOR }, __isa_6502_disasm_EOR, "EOR", "EOR $XX,X", isa_6502_addressing_zeropage_x_indexed },
+                    { { __isa_6502_EOR, __isa_6502_static_EOR }, __isa_6502_disasm_EOR, "EOR", "EOR $XXXX,Y", isa_6502_addressing_absolute_y_indexed },
+                    { { __isa_6502_EOR, __isa_6502_static_EOR }, __isa_6502_disasm_EOR, "EOR", "EOR $XXXX,X", isa_6502_addressing_absolute_x_indexed }
                 },{
                     /* A = 3 */
-                    { __isa_6502_ADC, __isa_6502_disasm_ADC, "ADC ($XX,X)", isa_6502_addressing_x_indexed_indirect },
-                    { __isa_6502_ADC, __isa_6502_disasm_ADC, "ADC $XX", isa_6502_addressing_zeropage },
-                    { __isa_6502_ADC, __isa_6502_disasm_ADC, "ADC #$XX", isa_6502_addressing_immediate },
-                    { __isa_6502_ADC, __isa_6502_disasm_ADC, "ADC $XXXX", isa_6502_addressing_absolute },
-                    { __isa_6502_ADC, __isa_6502_disasm_ADC, "ADC ($XX),Y", isa_6502_addressing_indirect_y_indexed },
-                    { __isa_6502_ADC, __isa_6502_disasm_ADC, "ADC $XX,X", isa_6502_addressing_zeropage_x_indexed },
-                    { __isa_6502_ADC, __isa_6502_disasm_ADC, "ADC $XXXX,Y", isa_6502_addressing_absolute_y_indexed },
-                    { __isa_6502_ADC, __isa_6502_disasm_ADC, "ADC $XXXX,X", isa_6502_addressing_absolute_x_indexed }
+                    { { __isa_6502_ADC, __isa_6502_static_ADC }, __isa_6502_disasm_ADC, "ADC", "ADC ($XX,X)", isa_6502_addressing_x_indexed_indirect },
+                    { { __isa_6502_ADC, __isa_6502_static_ADC }, __isa_6502_disasm_ADC, "ADC", "ADC $XX", isa_6502_addressing_zeropage },
+                    { { __isa_6502_ADC, __isa_6502_static_ADC }, __isa_6502_disasm_ADC, "ADC", "ADC #$XX", isa_6502_addressing_immediate },
+                    { { __isa_6502_ADC, __isa_6502_static_ADC }, __isa_6502_disasm_ADC, "ADC", "ADC $XXXX", isa_6502_addressing_absolute },
+                    { { __isa_6502_ADC, __isa_6502_static_ADC }, __isa_6502_disasm_ADC, "ADC", "ADC ($XX),Y", isa_6502_addressing_indirect_y_indexed },
+                    { { __isa_6502_ADC, __isa_6502_static_ADC }, __isa_6502_disasm_ADC, "ADC", "ADC $XX,X", isa_6502_addressing_zeropage_x_indexed },
+                    { { __isa_6502_ADC, __isa_6502_static_ADC }, __isa_6502_disasm_ADC, "ADC", "ADC $XXXX,Y", isa_6502_addressing_absolute_y_indexed },
+                    { { __isa_6502_ADC, __isa_6502_static_ADC }, __isa_6502_disasm_ADC, "ADC", "ADC $XXXX,X", isa_6502_addressing_absolute_x_indexed }
                 },{
                     /* A = 4 */
-                    { __isa_6502_STA, __isa_6502_disasm_STA, "STA ($XX,X)", isa_6502_addressing_x_indexed_indirect },
-                    { __isa_6502_STA, __isa_6502_disasm_STA, "STA $XX", isa_6502_addressing_zeropage },
+                    { { __isa_6502_STA, __isa_6502_static_STA }, __isa_6502_disasm_STA, "STA", "STA ($XX,X)", isa_6502_addressing_x_indexed_indirect },
+                    { { __isa_6502_STA, __isa_6502_static_STA }, __isa_6502_disasm_STA, "STA", "STA $XX", isa_6502_addressing_zeropage },
                     UNUSED_OPCODE,
-                    { __isa_6502_STA, __isa_6502_disasm_STA, "STA $XXXX", isa_6502_addressing_absolute },
-                    { __isa_6502_STA, __isa_6502_disasm_STA, "STA ($XX),Y", isa_6502_addressing_indirect_y_indexed },
-                    { __isa_6502_STA, __isa_6502_disasm_STA, "STA $XX,X", isa_6502_addressing_zeropage_x_indexed },
-                    { __isa_6502_STA, __isa_6502_disasm_STA, "STA $XXXX,Y", isa_6502_addressing_absolute_y_indexed },
-                    { __isa_6502_STA, __isa_6502_disasm_STA, "STA $XXXX,X", isa_6502_addressing_absolute_x_indexed }
+                    { { __isa_6502_STA, __isa_6502_static_STA }, __isa_6502_disasm_STA, "STA", "STA $XXXX", isa_6502_addressing_absolute },
+                    { { __isa_6502_STA, __isa_6502_static_STA }, __isa_6502_disasm_STA, "STA", "STA ($XX),Y", isa_6502_addressing_indirect_y_indexed },
+                    { { __isa_6502_STA, __isa_6502_static_STA }, __isa_6502_disasm_STA, "STA", "STA $XX,X", isa_6502_addressing_zeropage_x_indexed },
+                    { { __isa_6502_STA, __isa_6502_static_STA }, __isa_6502_disasm_STA, "STA", "STA $XXXX,Y", isa_6502_addressing_absolute_y_indexed },
+                    { { __isa_6502_STA, __isa_6502_static_STA }, __isa_6502_disasm_STA, "STA", "STA $XXXX,X", isa_6502_addressing_absolute_x_indexed }
                 },{
                     /* A = 5 */
-                    { __isa_6502_LDA, __isa_6502_disasm_LDA, "LDA ($XX,X)", isa_6502_addressing_x_indexed_indirect },
-                    { __isa_6502_LDA, __isa_6502_disasm_LDA, "LDA $XX", isa_6502_addressing_zeropage },
-                    { __isa_6502_LDA, __isa_6502_disasm_LDA, "LDA #$XX", isa_6502_addressing_immediate },
-                    { __isa_6502_LDA, __isa_6502_disasm_LDA, "LDA $XXXX", isa_6502_addressing_absolute },
-                    { __isa_6502_LDA, __isa_6502_disasm_LDA, "LDA ($XX),Y", isa_6502_addressing_indirect_y_indexed },
-                    { __isa_6502_LDA, __isa_6502_disasm_LDA, "LDA $XX,X", isa_6502_addressing_zeropage_x_indexed },
-                    { __isa_6502_LDA, __isa_6502_disasm_LDA, "LDA $XXXX,Y", isa_6502_addressing_absolute_y_indexed },
-                    { __isa_6502_LDA, __isa_6502_disasm_LDA, "LDA $XXXX,X", isa_6502_addressing_absolute_x_indexed }
+                    { { __isa_6502_LDA, __isa_6502_static_LDA }, __isa_6502_disasm_LDA, "LDA", "LDA ($XX,X)", isa_6502_addressing_x_indexed_indirect },
+                    { { __isa_6502_LDA, __isa_6502_static_LDA }, __isa_6502_disasm_LDA, "LDA", "LDA $XX", isa_6502_addressing_zeropage },
+                    { { __isa_6502_LDA, __isa_6502_static_LDA }, __isa_6502_disasm_LDA, "LDA", "LDA #$XX", isa_6502_addressing_immediate },
+                    { { __isa_6502_LDA, __isa_6502_static_LDA }, __isa_6502_disasm_LDA, "LDA", "LDA $XXXX", isa_6502_addressing_absolute },
+                    { { __isa_6502_LDA, __isa_6502_static_LDA }, __isa_6502_disasm_LDA, "LDA", "LDA ($XX),Y", isa_6502_addressing_indirect_y_indexed },
+                    { { __isa_6502_LDA, __isa_6502_static_LDA }, __isa_6502_disasm_LDA, "LDA", "LDA $XX,X", isa_6502_addressing_zeropage_x_indexed },
+                    { { __isa_6502_LDA, __isa_6502_static_LDA }, __isa_6502_disasm_LDA, "LDA", "LDA $XXXX,Y", isa_6502_addressing_absolute_y_indexed },
+                    { { __isa_6502_LDA, __isa_6502_static_LDA }, __isa_6502_disasm_LDA, "LDA", "LDA $XXXX,X", isa_6502_addressing_absolute_x_indexed }
                 },{
                     /* A = 6 */
-                    { __isa_6502_CMP, __isa_6502_disasm_CMP, "CMP ($XX,X)", isa_6502_addressing_x_indexed_indirect },
-                    { __isa_6502_CMP, __isa_6502_disasm_CMP, "CMP $XX", isa_6502_addressing_zeropage },
-                    { __isa_6502_CMP, __isa_6502_disasm_CMP, "CMP #$XX", isa_6502_addressing_immediate },
-                    { __isa_6502_CMP, __isa_6502_disasm_CMP, "CMP $XXXX", isa_6502_addressing_absolute },
-                    { __isa_6502_CMP, __isa_6502_disasm_CMP, "CMP ($XX),Y", isa_6502_addressing_indirect_y_indexed },
-                    { __isa_6502_CMP, __isa_6502_disasm_CMP, "CMP $XX,X", isa_6502_addressing_zeropage_x_indexed },
-                    { __isa_6502_CMP, __isa_6502_disasm_CMP, "CMP $XXXX,Y", isa_6502_addressing_absolute_y_indexed },
-                    { __isa_6502_CMP, __isa_6502_disasm_CMP, "CMP $XXXX,X", isa_6502_addressing_absolute_x_indexed }
+                    { { __isa_6502_CMP, __isa_6502_static_CMP }, __isa_6502_disasm_CMP, "CMP", "CMP ($XX,X)", isa_6502_addressing_x_indexed_indirect },
+                    { { __isa_6502_CMP, __isa_6502_static_CMP }, __isa_6502_disasm_CMP, "CMP", "CMP $XX", isa_6502_addressing_zeropage },
+                    { { __isa_6502_CMP, __isa_6502_static_CMP }, __isa_6502_disasm_CMP, "CMP", "CMP #$XX", isa_6502_addressing_immediate },
+                    { { __isa_6502_CMP, __isa_6502_static_CMP }, __isa_6502_disasm_CMP, "CMP", "CMP $XXXX", isa_6502_addressing_absolute },
+                    { { __isa_6502_CMP, __isa_6502_static_CMP }, __isa_6502_disasm_CMP, "CMP", "CMP ($XX),Y", isa_6502_addressing_indirect_y_indexed },
+                    { { __isa_6502_CMP, __isa_6502_static_CMP }, __isa_6502_disasm_CMP, "CMP", "CMP $XX,X", isa_6502_addressing_zeropage_x_indexed },
+                    { { __isa_6502_CMP, __isa_6502_static_CMP }, __isa_6502_disasm_CMP, "CMP", "CMP $XXXX,Y", isa_6502_addressing_absolute_y_indexed },
+                    { { __isa_6502_CMP, __isa_6502_static_CMP }, __isa_6502_disasm_CMP, "CMP", "CMP $XXXX,X", isa_6502_addressing_absolute_x_indexed }
                 },{
                     /* A = 7 */
-                    { __isa_6502_SBC, __isa_6502_disasm_SBC, "SBC ($XX,X)", isa_6502_addressing_x_indexed_indirect },
-                    { __isa_6502_SBC, __isa_6502_disasm_SBC, "SBC $XX", isa_6502_addressing_zeropage },
-                    { __isa_6502_SBC, __isa_6502_disasm_SBC, "SBC #$XX", isa_6502_addressing_immediate },
-                    { __isa_6502_SBC, __isa_6502_disasm_SBC, "SBC $XXXX", isa_6502_addressing_absolute },
-                    { __isa_6502_SBC, __isa_6502_disasm_SBC, "SBC ($XX),Y", isa_6502_addressing_indirect_y_indexed },
-                    { __isa_6502_SBC, __isa_6502_disasm_SBC, "SBC $XX,X", isa_6502_addressing_zeropage_x_indexed },
-                    { __isa_6502_SBC, __isa_6502_disasm_SBC, "SBC $XXXX,Y", isa_6502_addressing_absolute_y_indexed },
-                    { __isa_6502_SBC, __isa_6502_disasm_SBC, "SBC $XXXX,X", isa_6502_addressing_absolute_x_indexed }
+                    { { __isa_6502_SBC, __isa_6502_static_SBC }, __isa_6502_disasm_SBC, "SBC", "SBC ($XX,X)", isa_6502_addressing_x_indexed_indirect },
+                    { { __isa_6502_SBC, __isa_6502_static_SBC }, __isa_6502_disasm_SBC, "SBC", "SBC $XX", isa_6502_addressing_zeropage },
+                    { { __isa_6502_SBC, __isa_6502_static_SBC }, __isa_6502_disasm_SBC, "SBC", "SBC #$XX", isa_6502_addressing_immediate },
+                    { { __isa_6502_SBC, __isa_6502_static_SBC }, __isa_6502_disasm_SBC, "SBC", "SBC $XXXX", isa_6502_addressing_absolute },
+                    { { __isa_6502_SBC, __isa_6502_static_SBC }, __isa_6502_disasm_SBC, "SBC", "SBC ($XX),Y", isa_6502_addressing_indirect_y_indexed },
+                    { { __isa_6502_SBC, __isa_6502_static_SBC }, __isa_6502_disasm_SBC, "SBC", "SBC $XX,X", isa_6502_addressing_zeropage_x_indexed },
+                    { { __isa_6502_SBC, __isa_6502_static_SBC }, __isa_6502_disasm_SBC, "SBC", "SBC $XXXX,Y", isa_6502_addressing_absolute_y_indexed },
+                    { { __isa_6502_SBC, __isa_6502_static_SBC }, __isa_6502_disasm_SBC, "SBC", "SBC $XXXX,X", isa_6502_addressing_absolute_x_indexed }
                 }
             },{
                 /* C = 2 */
                 {
                     /* A = 0 */
                     UNUSED_OPCODE,
-                    { __isa_6502_ASL, __isa_6502_disasm_ASL, "ASL $XX", isa_6502_addressing_zeropage },
-                    { __isa_6502_ASL, __isa_6502_disasm_ASL, "ASL A", isa_6502_addressing_accumulator },
-                    { __isa_6502_ASL, __isa_6502_disasm_ASL, "ASL $XXXX", isa_6502_addressing_absolute },
+                    { { __isa_6502_ASL, __isa_6502_static_ASL }, __isa_6502_disasm_ASL, "ASL", "ASL $XX", isa_6502_addressing_zeropage },
+                    { { __isa_6502_ASL, __isa_6502_static_ASL }, __isa_6502_disasm_ASL, "ASL", "ASL A", isa_6502_addressing_accumulator },
+                    { { __isa_6502_ASL, __isa_6502_static_ASL }, __isa_6502_disasm_ASL, "ASL", "ASL $XXXX", isa_6502_addressing_absolute },
                     UNUSED_OPCODE,
-                    { __isa_6502_ASL, __isa_6502_disasm_ASL, "ASL $XX,X", isa_6502_addressing_zeropage_x_indexed },
+                    { { __isa_6502_ASL, __isa_6502_static_ASL }, __isa_6502_disasm_ASL, "ASL", "ASL $XX,X", isa_6502_addressing_zeropage_x_indexed },
                     UNUSED_OPCODE,
-                    { __isa_6502_ASL, __isa_6502_disasm_ASL, "ASL $XXXX,X", isa_6502_addressing_absolute_x_indexed }
+                    { { __isa_6502_ASL, __isa_6502_static_ASL }, __isa_6502_disasm_ASL, "ASL", "ASL $XXXX,X", isa_6502_addressing_absolute_x_indexed }
                 },{
                     /* A = 1 */
                     UNUSED_OPCODE,
-                    { __isa_6502_ROL, __isa_6502_disasm_ROL, "ROL $XX", isa_6502_addressing_zeropage },
-                    { __isa_6502_ROL, __isa_6502_disasm_ROL, "ROL A", isa_6502_addressing_accumulator },
-                    { __isa_6502_ROL, __isa_6502_disasm_ROL, "ROL $XXXX", isa_6502_addressing_absolute },
+                    { { __isa_6502_ROL, __isa_6502_static_ROL }, __isa_6502_disasm_ROL, "ROL", "ROL $XX", isa_6502_addressing_zeropage },
+                    { { __isa_6502_ROL, __isa_6502_static_ROL }, __isa_6502_disasm_ROL, "ROL", "ROL A", isa_6502_addressing_accumulator },
+                    { { __isa_6502_ROL, __isa_6502_static_ROL }, __isa_6502_disasm_ROL, "ROL", "ROL $XXXX", isa_6502_addressing_absolute },
                     UNUSED_OPCODE,
-                    { __isa_6502_ROL, __isa_6502_disasm_ROL, "ROL $XX,X", isa_6502_addressing_zeropage_x_indexed },
+                    { { __isa_6502_ROL, __isa_6502_static_ROL }, __isa_6502_disasm_ROL, "ROL", "ROL $XX,X", isa_6502_addressing_zeropage_x_indexed },
                     UNUSED_OPCODE,
-                    { __isa_6502_ROL, __isa_6502_disasm_ROL, "ROL $XXXX,X", isa_6502_addressing_absolute_x_indexed }
+                    { { __isa_6502_ROL, __isa_6502_static_ROL }, __isa_6502_disasm_ROL, "ROL", "ROL $XXXX,X", isa_6502_addressing_absolute_x_indexed }
                 },{
                     /* A = 2 */
                     UNUSED_OPCODE,
-                    { __isa_6502_LSR, __isa_6502_disasm_LSR, "LSR $XX", isa_6502_addressing_zeropage },
-                    { __isa_6502_LSR, __isa_6502_disasm_LSR, "LSR A", isa_6502_addressing_accumulator },
-                    { __isa_6502_LSR, __isa_6502_disasm_LSR, "LSR $XXXX", isa_6502_addressing_absolute },
+                    { { __isa_6502_LSR, __isa_6502_static_LSR }, __isa_6502_disasm_LSR, "LSR", "LSR $XX", isa_6502_addressing_zeropage },
+                    { { __isa_6502_LSR, __isa_6502_static_LSR }, __isa_6502_disasm_LSR, "LSR", "LSR A", isa_6502_addressing_accumulator },
+                    { { __isa_6502_LSR, __isa_6502_static_LSR }, __isa_6502_disasm_LSR, "LSR", "LSR $XXXX", isa_6502_addressing_absolute },
                     UNUSED_OPCODE,
-                    { __isa_6502_LSR, __isa_6502_disasm_LSR, "LSR $XX,X", isa_6502_addressing_zeropage_x_indexed },
+                    { { __isa_6502_LSR, __isa_6502_static_LSR }, __isa_6502_disasm_LSR, "LSR", "LSR $XX,X", isa_6502_addressing_zeropage_x_indexed },
                     UNUSED_OPCODE,
-                    { __isa_6502_LSR, __isa_6502_disasm_LSR, "LSR $XXXX,X", isa_6502_addressing_absolute_x_indexed }
+                    { { __isa_6502_LSR, __isa_6502_static_LSR }, __isa_6502_disasm_LSR, "LSR", "LSR $XXXX,X", isa_6502_addressing_absolute_x_indexed }
                 },{
                     /* A = 3 */
                     UNUSED_OPCODE,
-                    { __isa_6502_ROR, __isa_6502_disasm_ROR, "ROR $XX", isa_6502_addressing_zeropage },
-                    { __isa_6502_ROR, __isa_6502_disasm_ROR, "ROR A", isa_6502_addressing_accumulator },
-                    { __isa_6502_ROR, __isa_6502_disasm_ROR, "ROR $XXXX", isa_6502_addressing_absolute },
+                    { { __isa_6502_ROR, __isa_6502_static_ROR }, __isa_6502_disasm_ROR, "ROR", "ROR $XX", isa_6502_addressing_zeropage },
+                    { { __isa_6502_ROR, __isa_6502_static_ROR }, __isa_6502_disasm_ROR, "ROR", "ROR A", isa_6502_addressing_accumulator },
+                    { { __isa_6502_ROR, __isa_6502_static_ROR }, __isa_6502_disasm_ROR, "ROR", "ROR $XXXX", isa_6502_addressing_absolute },
                     UNUSED_OPCODE,
-                    { __isa_6502_ROR, __isa_6502_disasm_ROR, "ROR $XX,X", isa_6502_addressing_zeropage_x_indexed },
+                    { { __isa_6502_ROR, __isa_6502_static_ROR }, __isa_6502_disasm_ROR, "ROR", "ROR $XX,X", isa_6502_addressing_zeropage_x_indexed },
                     UNUSED_OPCODE,
-                    { __isa_6502_ROR, __isa_6502_disasm_ROR, "ROR $XXXX,X", isa_6502_addressing_absolute_x_indexed }
+                    { { __isa_6502_ROR, __isa_6502_static_ROR }, __isa_6502_disasm_ROR, "ROR", "ROR $XXXX,X", isa_6502_addressing_absolute_x_indexed }
                 },{
                     /* A = 4 */
                     UNUSED_OPCODE,
-                    { __isa_6502_STX, __isa_6502_disasm_STX, "STX $XX", isa_6502_addressing_zeropage },
-                    { __isa_6502_TXA, __isa_6502_disasm_TXA, "TXA", isa_6502_addressing_implied },
-                    { __isa_6502_STX, __isa_6502_disasm_STX, "STX $XXXX", isa_6502_addressing_absolute },
+                    { { __isa_6502_STX, __isa_6502_static_STX }, __isa_6502_disasm_STX, "STX", "STX $XX", isa_6502_addressing_zeropage },
+                    { { __isa_6502_TXA, __isa_6502_static_TXA }, __isa_6502_disasm_TXA, "TXA", "TXA", isa_6502_addressing_implied },
+                    { { __isa_6502_STX, __isa_6502_static_STX }, __isa_6502_disasm_STX, "STX", "STX $XXXX", isa_6502_addressing_absolute },
                     UNUSED_OPCODE,
-                    { __isa_6502_STX, __isa_6502_disasm_STX, "STX $XX,Y", isa_6502_addressing_zeropage_y_indexed },
-                    { __isa_6502_TXS, __isa_6502_disasm_TXS, "TXS", isa_6502_addressing_implied },
+                    { { __isa_6502_STX, __isa_6502_static_STX }, __isa_6502_disasm_STX, "STX", "STX $XX,Y", isa_6502_addressing_zeropage_y_indexed },
+                    { { __isa_6502_TXS, __isa_6502_static_TXS }, __isa_6502_disasm_TXS, "TXS", "TXS", isa_6502_addressing_implied },
                     UNUSED_OPCODE
                 },{
                     /* A = 5 */
-                    { __isa_6502_LDX, __isa_6502_disasm_LDX, "LDX #$XX", isa_6502_addressing_immediate },
-                    { __isa_6502_LDX, __isa_6502_disasm_LDX, "LDX $XX", isa_6502_addressing_zeropage },
-                    { __isa_6502_TAX, __isa_6502_disasm_TAX, "TAX", isa_6502_addressing_implied },
-                    { __isa_6502_LDX, __isa_6502_disasm_LDX, "LDX $XXXX", isa_6502_addressing_absolute },
+                    { { __isa_6502_LDX, __isa_6502_static_LDX }, __isa_6502_disasm_LDX, "LDX", "LDX #$XX", isa_6502_addressing_immediate },
+                    { { __isa_6502_LDX, __isa_6502_static_LDX }, __isa_6502_disasm_LDX, "LDX", "LDX $XX", isa_6502_addressing_zeropage },
+                    { { __isa_6502_TAX, __isa_6502_static_TAX }, __isa_6502_disasm_TAX, "TAX", "TAX", isa_6502_addressing_implied },
+                    { { __isa_6502_LDX, __isa_6502_static_LDX }, __isa_6502_disasm_LDX, "LDX", "LDX $XXXX", isa_6502_addressing_absolute },
                     UNUSED_OPCODE,
-                    { __isa_6502_LDX, __isa_6502_disasm_LDX, "LDX $XX,Y", isa_6502_addressing_zeropage_y_indexed },
-                    { __isa_6502_TSX, __isa_6502_disasm_TSX, "TSX", isa_6502_addressing_implied },
-                    { __isa_6502_LDX, __isa_6502_disasm_LDX, "LDX $XXXX,Y", isa_6502_addressing_absolute_y_indexed }
+                    { { __isa_6502_LDX, __isa_6502_static_LDX }, __isa_6502_disasm_LDX, "LDX", "LDX $XX,Y", isa_6502_addressing_zeropage_y_indexed },
+                    { { __isa_6502_TSX, __isa_6502_static_TSX }, __isa_6502_disasm_TSX, "TSX", "TSX", isa_6502_addressing_implied },
+                    { { __isa_6502_LDX, __isa_6502_static_LDX }, __isa_6502_disasm_LDX, "LDX", "LDX $XXXX,Y", isa_6502_addressing_absolute_y_indexed }
                 },{
                     /* A = 6 */
                     UNUSED_OPCODE,
-                    { __isa_6502_DEC, __isa_6502_disasm_DEC, "DEC $XX", isa_6502_addressing_zeropage },
-                    { __isa_6502_DEX, __isa_6502_disasm_DEX, "DEX", isa_6502_addressing_implied },
-                    { __isa_6502_DEC, __isa_6502_disasm_DEC, "DEC $XXXX", isa_6502_addressing_absolute },
+                    { { __isa_6502_DEC, __isa_6502_static_DEC }, __isa_6502_disasm_DEC, "DEC", "DEC $XX", isa_6502_addressing_zeropage },
+                    { { __isa_6502_DEX, __isa_6502_static_DEX }, __isa_6502_disasm_DEX, "DEX", "DEX", isa_6502_addressing_implied },
+                    { { __isa_6502_DEC, __isa_6502_static_DEC }, __isa_6502_disasm_DEC, "DEC", "DEC $XXXX", isa_6502_addressing_absolute },
                     UNUSED_OPCODE,
-                    { __isa_6502_DEC, __isa_6502_disasm_DEC, "DEC $XX,X", isa_6502_addressing_zeropage_x_indexed },
+                    { { __isa_6502_DEC, __isa_6502_static_DEC }, __isa_6502_disasm_DEC, "DEC", "DEC $XX,X", isa_6502_addressing_zeropage_x_indexed },
                     UNUSED_OPCODE,
-                    { __isa_6502_DEC, __isa_6502_disasm_DEC, "DEC $XXXX,X", isa_6502_addressing_absolute_x_indexed }
+                    { { __isa_6502_DEC, __isa_6502_static_DEC }, __isa_6502_disasm_DEC, "DEC", "DEC $XXXX,X", isa_6502_addressing_absolute_x_indexed }
                 },{
                     /* A = 7 */
                     UNUSED_OPCODE,
-                    { __isa_6502_INC, __isa_6502_disasm_INC, "INC $XX", isa_6502_addressing_zeropage },
-                    { __isa_6502_NOP, __isa_6502_disasm_NOP, "NOP", isa_6502_addressing_implied },
-                    { __isa_6502_INC, __isa_6502_disasm_INC, "INC $XXXX", isa_6502_addressing_absolute },
+                    { { __isa_6502_INC, __isa_6502_static_INC }, __isa_6502_disasm_INC, "INC", "INC $XX", isa_6502_addressing_zeropage },
+                    { { __isa_6502_NOP, __isa_6502_static_NOP }, __isa_6502_disasm_NOP, "NOP", "NOP", isa_6502_addressing_implied },
+                    { { __isa_6502_INC, __isa_6502_static_INC }, __isa_6502_disasm_INC, "INC", "INC $XXXX", isa_6502_addressing_absolute },
                     UNUSED_OPCODE,
-                    { __isa_6502_INC, __isa_6502_disasm_INC, "INC $XX,X", isa_6502_addressing_zeropage_x_indexed },
+                    { { __isa_6502_INC, __isa_6502_static_INC }, __isa_6502_disasm_INC, "INC", "INC $XX,X", isa_6502_addressing_zeropage_x_indexed },
                     UNUSED_OPCODE,
-                    { __isa_6502_INC, __isa_6502_disasm_INC, "INC $XXXX,X", isa_6502_addressing_absolute_x_indexed }
+                    { { __isa_6502_INC, __isa_6502_static_INC }, __isa_6502_disasm_INC, "INC", "INC $XXXX,X", isa_6502_addressing_absolute_x_indexed }
                 }
             }
         }
@@ -435,6 +457,24 @@ __isa_65C02_ ## OPCODE( \
     isa_6502_instr_context_t    *opcode_context, \
     isa_6502_instr_stage_t      at_stage \
 )
+
+//
+
+#define ISA_65C02_STATIC_INSTR(OPCODE) \
+static isa_6502_instr_stage_t \
+__isa_65C02_static_ ## OPCODE( \
+    isa_6502_instr_context_t    *opcode_context, \
+    isa_6502_instr_stage_t      at_stage \
+)
+#define ISA_65C02_STATIC_INSTR_EMPTY(OPCODE) \
+static isa_6502_instr_stage_t \
+__isa_65C02_static_ ## OPCODE( \
+    isa_6502_instr_context_t    *opcode_context, \
+    isa_6502_instr_stage_t      at_stage \
+) \
+{ \
+    return isa_6502_instr_stage_end; \
+}
 
 //
 
@@ -526,250 +566,250 @@ static isa_6502_table_t __isa_65C02_table = {
                 /* C = 0 */
                 {
                     /* A = 0 */
-                    { __isa_65C02_BRK, __isa_65C02_disasm_BRK, "BRK", isa_6502_addressing_implied },
-                    { __isa_65C02_TSB, __isa_65C02_disasm_TSB, "TSB $XX", isa_6502_addressing_zeropage },
-                    { __isa_65C02_PHP, __isa_65C02_disasm_PHP, "PHP", isa_6502_addressing_implied },
-                    { __isa_65C02_TSB, __isa_65C02_disasm_TSB, "TSB $XXXX", isa_6502_addressing_absolute },
-                    { __isa_65C02_BPL, __isa_65C02_disasm_BPL, "BPL $XX", isa_6502_addressing_relative },
-                    { __isa_65C02_TRB, __isa_65C02_disasm_TRB, "TRB $XX", isa_6502_addressing_zeropage },
-                    { __isa_65C02_CLC, __isa_65C02_disasm_CLC, "CLC", isa_6502_addressing_implied },
-                    { __isa_65C02_TRB, __isa_65C02_disasm_TRB, "TRB $XXXX", isa_6502_addressing_absolute },
+                    { { __isa_65C02_BRK, __isa_65C02_static_BRK }, __isa_65C02_disasm_BRK, "BRK", "BRK", isa_6502_addressing_implied },
+                    { { __isa_65C02_TSB, __isa_65C02_static_TSB }, __isa_65C02_disasm_TSB, "TSB", "TSB $XX", isa_6502_addressing_zeropage },
+                    { { __isa_65C02_PHP, __isa_65C02_static_PHP }, __isa_65C02_disasm_PHP, "PHP", "PHP", isa_6502_addressing_implied },
+                    { { __isa_65C02_TSB, __isa_65C02_static_TSB }, __isa_65C02_disasm_TSB, "TSB", "TSB $XXXX", isa_6502_addressing_absolute },
+                    { { __isa_65C02_BPL, __isa_65C02_static_BPL }, __isa_65C02_disasm_BPL, "BPL", "BPL $XX", isa_6502_addressing_relative },
+                    { { __isa_65C02_TRB, __isa_65C02_static_TRB }, __isa_65C02_disasm_TRB, "TRB", "TRB $XX", isa_6502_addressing_zeropage },
+                    { { __isa_65C02_CLC, __isa_65C02_static_CLC }, __isa_65C02_disasm_CLC, "CLC", "CLC", isa_6502_addressing_implied },
+                    { { __isa_65C02_TRB, __isa_65C02_static_TRB }, __isa_65C02_disasm_TRB, "TRB", "TRB $XXXX", isa_6502_addressing_absolute },
                 },{
                     /* A = 1 */
-                    { __isa_65C02_JSR, __isa_65C02_disasm_JSR, "JSR $XXXX", isa_6502_addressing_absolute },
-                    { __isa_65C02_BIT, __isa_65C02_disasm_BIT, "BIT $XX", isa_6502_addressing_zeropage },
-                    { __isa_65C02_PLP, __isa_65C02_disasm_PLP, "PLP", isa_6502_addressing_implied },
-                    { __isa_65C02_BIT, __isa_65C02_disasm_BIT, "BIT $XXXX", isa_6502_addressing_absolute },
-                    { __isa_65C02_BMI, __isa_65C02_disasm_BMI, "BMI $XX", isa_6502_addressing_relative },
-                    { __isa_65C02_BIT, __isa_65C02_disasm_BIT, "BIT $XX,X", isa_6502_addressing_zeropage_x_indexed},
-                    { __isa_65C02_SEC, __isa_65C02_disasm_SEC, "SEC", isa_6502_addressing_implied },
-                    { __isa_65C02_BIT, __isa_65C02_disasm_BIT, "BIT $XXXX,X", isa_6502_addressing_absolute_x_indexed },
+                    { { __isa_65C02_JSR, __isa_65C02_static_JSR }, __isa_65C02_disasm_JSR, "JSR", "JSR $XXXX", isa_6502_addressing_absolute },
+                    { { __isa_65C02_BIT, __isa_65C02_static_BIT }, __isa_65C02_disasm_BIT, "BIT", "BIT $XX", isa_6502_addressing_zeropage },
+                    { { __isa_65C02_PLP, __isa_65C02_static_PLP }, __isa_65C02_disasm_PLP, "PLP", "PLP", isa_6502_addressing_implied },
+                    { { __isa_65C02_BIT, __isa_65C02_static_BIT }, __isa_65C02_disasm_BIT, "BIT", "BIT $XXXX", isa_6502_addressing_absolute },
+                    { { __isa_65C02_BMI, __isa_65C02_static_BMI }, __isa_65C02_disasm_BMI, "BMI", "BMI $XX", isa_6502_addressing_relative },
+                    { { __isa_65C02_BIT, __isa_65C02_static_BIT }, __isa_65C02_disasm_BIT, "BIT", "BIT $XX,X", isa_6502_addressing_zeropage_x_indexed},
+                    { { __isa_65C02_SEC, __isa_65C02_static_SEC }, __isa_65C02_disasm_SEC, "SEC", "SEC", isa_6502_addressing_implied },
+                    { { __isa_65C02_BIT, __isa_65C02_static_BIT }, __isa_65C02_disasm_BIT, "BIT", "BIT $XXXX,X", isa_6502_addressing_absolute_x_indexed },
                 },{
                     /* A = 2 */
-                    { __isa_65C02_RTI, __isa_65C02_disasm_RTI, "RTI", isa_6502_addressing_implied },
+                    { { __isa_65C02_RTI, __isa_65C02_static_RTI }, __isa_65C02_disasm_RTI, "RTI", "RTI", isa_6502_addressing_implied },
                     UNUSED_OPCODE,
-                    { __isa_65C02_PHA, __isa_65C02_disasm_PHA, "PHA", isa_6502_addressing_implied },
-                    { __isa_65C02_JMP, __isa_65C02_disasm_JMP, "JMP $XXXX", isa_6502_addressing_absolute },
-                    { __isa_65C02_BVC, __isa_65C02_disasm_BVC, "BVC $XX", isa_6502_addressing_relative },
+                    { { __isa_65C02_PHA, __isa_65C02_static_PHA }, __isa_65C02_disasm_PHA, "PHA", "PHA", isa_6502_addressing_implied },
+                    { { __isa_65C02_JMP, __isa_65C02_static_JMP }, __isa_65C02_disasm_JMP, "JMP", "JMP $XXXX", isa_6502_addressing_absolute },
+                    { { __isa_65C02_BVC, __isa_65C02_static_BVC }, __isa_65C02_disasm_BVC, "BVC", "BVC $XX", isa_6502_addressing_relative },
                     UNUSED_OPCODE,
-                    { __isa_65C02_CLI, __isa_65C02_disasm_CLI, "CLI", isa_6502_addressing_implied },
+                    { { __isa_65C02_CLI, __isa_65C02_static_CLI }, __isa_65C02_disasm_CLI, "CLI", "CLI", isa_6502_addressing_implied },
                     UNUSED_OPCODE
                 },{
                     /* A = 3 */
-                    { __isa_65C02_RTS, __isa_65C02_disasm_RTS, "RTS", isa_6502_addressing_implied },
-                    { __isa_65C02_STZ, __isa_65C02_disasm_STZ, "STZ $XX", isa_6502_addressing_zeropage },
-                    { __isa_65C02_PLA, __isa_65C02_disasm_PLA, "PLA", isa_6502_addressing_implied },
-                    { __isa_65C02_JMP, __isa_65C02_disasm_JMP, "JMP ($XXXX)", isa_6502_addressing_indirect },
-                    { __isa_65C02_BVS, __isa_65C02_disasm_BVS, "BVS $XX", isa_6502_addressing_relative },
-                    { __isa_65C02_STZ, __isa_65C02_disasm_STZ, "STZ $XX,X", isa_6502_addressing_zeropage_x_indexed },
-                    { __isa_65C02_SEI, __isa_65C02_disasm_SEI, "SEI", isa_6502_addressing_implied },
-                    { __isa_65C02_JMP, __isa_65C02_disasm_JMP, "JMP ($XXXX,X)", isa_6502_addressing_absolute_x_indexed_indirect },
+                    { { __isa_65C02_RTS, __isa_65C02_static_RTS }, __isa_65C02_disasm_RTS, "RTS", "RTS", isa_6502_addressing_implied },
+                    { { __isa_65C02_STZ, __isa_65C02_static_STZ }, __isa_65C02_disasm_STZ, "STZ", "STZ $XX", isa_6502_addressing_zeropage },
+                    { { __isa_65C02_PLA, __isa_65C02_static_PLA }, __isa_65C02_disasm_PLA, "PLA", "PLA", isa_6502_addressing_implied },
+                    { { __isa_65C02_JMP, __isa_65C02_static_JMP }, __isa_65C02_disasm_JMP, "JMP", "JMP ($XXXX)", isa_6502_addressing_indirect },
+                    { { __isa_65C02_BVS, __isa_65C02_static_BVS }, __isa_65C02_disasm_BVS, "BVS", "BVS $XX", isa_6502_addressing_relative },
+                    { { __isa_65C02_STZ, __isa_65C02_static_STZ }, __isa_65C02_disasm_STZ, "STZ", "STZ $XX,X", isa_6502_addressing_zeropage_x_indexed },
+                    { { __isa_65C02_SEI, __isa_65C02_static_SEI }, __isa_65C02_disasm_SEI, "SEI", "SEI", isa_6502_addressing_implied },
+                    { { __isa_65C02_JMP, __isa_65C02_static_JMP }, __isa_65C02_disasm_JMP, "JMP", "JMP ($XXXX,X)", isa_6502_addressing_absolute_x_indexed_indirect },
                 },{
                     /* A = 4 */
-                    { __isa_65C02_BRA, __isa_65C02_disasm_BRA, "BRA $XX", isa_6502_addressing_relative},
-                    { __isa_65C02_STY, __isa_65C02_disasm_STY, "STY $XX", isa_6502_addressing_zeropage },
-                    { __isa_65C02_DEY, __isa_65C02_disasm_DEY, "DEY", isa_6502_addressing_implied },
-                    { __isa_65C02_STY, __isa_65C02_disasm_STY, "STY $XXXX", isa_6502_addressing_absolute },
-                    { __isa_65C02_BCC, __isa_65C02_disasm_BCC, "BCC $XX", isa_6502_addressing_relative },
-                    { __isa_65C02_STY, __isa_65C02_disasm_STY, "STY $XX,X", isa_6502_addressing_zeropage_x_indexed },
-                    { __isa_65C02_TYA, __isa_65C02_disasm_TYA, "TYA", isa_6502_addressing_implied },
-                    { __isa_65C02_STZ, __isa_65C02_disasm_STZ, "STZ $XXXX", isa_6502_addressing_absolute }
+                    { { __isa_65C02_BRA, __isa_65C02_static_BRA }, __isa_65C02_disasm_BRA, "BRA", "BRA $XX", isa_6502_addressing_relative},
+                    { { __isa_65C02_STY, __isa_65C02_static_STY }, __isa_65C02_disasm_STY, "STY", "STY $XX", isa_6502_addressing_zeropage },
+                    { { __isa_65C02_DEY, __isa_65C02_static_DEY }, __isa_65C02_disasm_DEY, "DEY", "DEY", isa_6502_addressing_implied },
+                    { { __isa_65C02_STY, __isa_65C02_static_STY }, __isa_65C02_disasm_STY, "STY", "STY $XXXX", isa_6502_addressing_absolute },
+                    { { __isa_65C02_BCC, __isa_65C02_static_BCC }, __isa_65C02_disasm_BCC, "BCC", "BCC $XX", isa_6502_addressing_relative },
+                    { { __isa_65C02_STY, __isa_65C02_static_STY }, __isa_65C02_disasm_STY, "STY", "STY $XX,X", isa_6502_addressing_zeropage_x_indexed },
+                    { { __isa_65C02_TYA, __isa_65C02_static_TYA }, __isa_65C02_disasm_TYA, "TYA", "TYA", isa_6502_addressing_implied },
+                    { { __isa_65C02_STZ, __isa_65C02_static_STZ }, __isa_65C02_disasm_STZ, "STZ", "STZ $XXXX", isa_6502_addressing_absolute }
                 },{
                     /* A = 5 */
-                    { __isa_65C02_LDY, __isa_65C02_disasm_LDY, "LDY #$XX", isa_6502_addressing_immediate },
-                    { __isa_65C02_LDY, __isa_65C02_disasm_LDY, "LDY $XX", isa_6502_addressing_zeropage },
-                    { __isa_65C02_TAY, __isa_65C02_disasm_TAY, "TAY", isa_6502_addressing_implied },
-                    { __isa_65C02_LDY, __isa_65C02_disasm_LDY, "LDY $XXXX", isa_6502_addressing_absolute },
-                    { __isa_65C02_BCS, __isa_65C02_disasm_BCS, "BCS $XX", isa_6502_addressing_relative },
-                    { __isa_65C02_LDY, __isa_65C02_disasm_LDY, "LDY $XX,X", isa_6502_addressing_zeropage_x_indexed },
-                    { __isa_65C02_CLV, __isa_65C02_disasm_CLV, "CLV", isa_6502_addressing_implied },
-                    { __isa_65C02_LDY, __isa_65C02_disasm_LDY, "LDY $XXXX,X", isa_6502_addressing_absolute_x_indexed }
+                    { { __isa_65C02_LDY, __isa_65C02_static_LDY }, __isa_65C02_disasm_LDY, "LDY", "LDY #$XX", isa_6502_addressing_immediate },
+                    { { __isa_65C02_LDY, __isa_65C02_static_LDY }, __isa_65C02_disasm_LDY, "LDY", "LDY $XX", isa_6502_addressing_zeropage },
+                    { { __isa_65C02_TAY, __isa_65C02_static_TAY }, __isa_65C02_disasm_TAY, "TAY", "TAY", isa_6502_addressing_implied },
+                    { { __isa_65C02_LDY, __isa_65C02_static_LDY }, __isa_65C02_disasm_LDY, "LDY", "LDY $XXXX", isa_6502_addressing_absolute },
+                    { { __isa_65C02_BCS, __isa_65C02_static_BCS }, __isa_65C02_disasm_BCS, "BCS", "BCS $XX", isa_6502_addressing_relative },
+                    { { __isa_65C02_LDY, __isa_65C02_static_LDY }, __isa_65C02_disasm_LDY, "LDY", "LDY $XX,X", isa_6502_addressing_zeropage_x_indexed },
+                    { { __isa_65C02_CLV, __isa_65C02_static_CLV }, __isa_65C02_disasm_CLV, "CLV", "CLV", isa_6502_addressing_implied },
+                    { { __isa_65C02_LDY, __isa_65C02_static_LDY }, __isa_65C02_disasm_LDY, "LDY", "LDY $XXXX,X", isa_6502_addressing_absolute_x_indexed }
                 },{
                     /* A = 6 */
-                    { __isa_65C02_CPY, __isa_65C02_disasm_CPY, "CPY #$XX", isa_6502_addressing_immediate },
-                    { __isa_65C02_CPY, __isa_65C02_disasm_CPY, "CPY $XX", isa_6502_addressing_zeropage },
-                    { __isa_65C02_INY, __isa_65C02_disasm_INY, "INY", isa_6502_addressing_implied },
-                    { __isa_65C02_CPY, __isa_65C02_disasm_CPY, "CPY $XXXX", isa_6502_addressing_absolute },
-                    { __isa_65C02_BNE, __isa_65C02_disasm_BNE, "BNE $XX", isa_6502_addressing_relative },
+                    { { __isa_65C02_CPY, __isa_65C02_static_CPY }, __isa_65C02_disasm_CPY, "CPY", "CPY #$XX", isa_6502_addressing_immediate },
+                    { { __isa_65C02_CPY, __isa_65C02_static_CPY }, __isa_65C02_disasm_CPY, "CPY", "CPY $XX", isa_6502_addressing_zeropage },
+                    { { __isa_65C02_INY, __isa_65C02_static_INY }, __isa_65C02_disasm_INY, "INY", "INY", isa_6502_addressing_implied },
+                    { { __isa_65C02_CPY, __isa_65C02_static_CPY }, __isa_65C02_disasm_CPY, "CPY", "CPY $XXXX", isa_6502_addressing_absolute },
+                    { { __isa_65C02_BNE, __isa_65C02_static_BNE }, __isa_65C02_disasm_BNE, "BNE", "BNE $XX", isa_6502_addressing_relative },
                     UNUSED_OPCODE,
-                    { __isa_65C02_CLD, __isa_65C02_disasm_CLD, "CLD", isa_6502_addressing_implied },
+                    { { __isa_65C02_CLD, __isa_65C02_static_CLD }, __isa_65C02_disasm_CLD, "CLD", "CLD", isa_6502_addressing_implied },
                     UNUSED_OPCODE
                 },{
                     /* A = 7 */
-                    { __isa_65C02_CPX, __isa_65C02_disasm_CPX, "CPX #$XX", isa_6502_addressing_immediate },
-                    { __isa_65C02_CPX, __isa_65C02_disasm_CPX, "CPX $XX", isa_6502_addressing_zeropage },
-                    { __isa_65C02_INX, __isa_65C02_disasm_INX, "INX", isa_6502_addressing_implied },
-                    { __isa_65C02_CPX, __isa_65C02_disasm_CPX, "CPX $XXXX", isa_6502_addressing_absolute },
-                    { __isa_65C02_BEQ, __isa_65C02_disasm_BEQ, "BEQ $XX", isa_6502_addressing_relative },
+                    { { __isa_65C02_CPX, __isa_65C02_static_CPX }, __isa_65C02_disasm_CPX, "CPX", "CPX #$XX", isa_6502_addressing_immediate },
+                    { { __isa_65C02_CPX, __isa_65C02_static_CPX }, __isa_65C02_disasm_CPX, "CPX", "CPX $XX", isa_6502_addressing_zeropage },
+                    { { __isa_65C02_INX, __isa_65C02_static_INX }, __isa_65C02_disasm_INX, "INX", "INX", isa_6502_addressing_implied },
+                    { { __isa_65C02_CPX, __isa_65C02_static_CPX }, __isa_65C02_disasm_CPX, "CPX", "CPX $XXXX", isa_6502_addressing_absolute },
+                    { { __isa_65C02_BEQ, __isa_65C02_static_BEQ }, __isa_65C02_disasm_BEQ, "BEQ", "BEQ $XX", isa_6502_addressing_relative },
                     UNUSED_OPCODE,
-                    { __isa_65C02_SED, __isa_65C02_disasm_SED, "SED", isa_6502_addressing_implied },
+                    { { __isa_65C02_SED, __isa_65C02_static_SED }, __isa_65C02_disasm_SED, "SED", "SED", isa_6502_addressing_implied },
                     UNUSED_OPCODE
                 }
             }, {
                 /* C = 1 */
                 {
                     /* A = 0 */
-                    { __isa_65C02_ORA, __isa_65C02_disasm_ORA, "ORA ($XX,X)", isa_6502_addressing_x_indexed_indirect },
-                    { __isa_65C02_ORA, __isa_65C02_disasm_ORA, "ORA $XX", isa_6502_addressing_zeropage },
-                    { __isa_65C02_ORA, __isa_65C02_disasm_ORA, "ORA #$XX", isa_6502_addressing_immediate },
-                    { __isa_65C02_ORA, __isa_65C02_disasm_ORA, "ORA $XXXX", isa_6502_addressing_absolute },
-                    { __isa_65C02_ORA, __isa_65C02_disasm_ORA, "ORA ($XX),Y", isa_6502_addressing_indirect_y_indexed },
-                    { __isa_65C02_ORA, __isa_65C02_disasm_ORA, "ORA $XX,X", isa_6502_addressing_zeropage_x_indexed },
-                    { __isa_65C02_ORA, __isa_65C02_disasm_ORA, "ORA $XXXX,Y", isa_6502_addressing_absolute_y_indexed },
-                    { __isa_65C02_ORA, __isa_65C02_disasm_ORA, "ORA $XXXX,X", isa_6502_addressing_absolute_x_indexed }
+                    { { __isa_65C02_ORA, __isa_65C02_static_ORA }, __isa_65C02_disasm_ORA, "ORA", "ORA ($XX,X)", isa_6502_addressing_x_indexed_indirect },
+                    { { __isa_65C02_ORA, __isa_65C02_static_ORA }, __isa_65C02_disasm_ORA, "ORA", "ORA $XX", isa_6502_addressing_zeropage },
+                    { { __isa_65C02_ORA, __isa_65C02_static_ORA }, __isa_65C02_disasm_ORA, "ORA", "ORA #$XX", isa_6502_addressing_immediate },
+                    { { __isa_65C02_ORA, __isa_65C02_static_ORA }, __isa_65C02_disasm_ORA, "ORA", "ORA $XXXX", isa_6502_addressing_absolute },
+                    { { __isa_65C02_ORA, __isa_65C02_static_ORA }, __isa_65C02_disasm_ORA, "ORA", "ORA ($XX),Y", isa_6502_addressing_indirect_y_indexed },
+                    { { __isa_65C02_ORA, __isa_65C02_static_ORA }, __isa_65C02_disasm_ORA, "ORA", "ORA $XX,X", isa_6502_addressing_zeropage_x_indexed },
+                    { { __isa_65C02_ORA, __isa_65C02_static_ORA }, __isa_65C02_disasm_ORA, "ORA", "ORA $XXXX,Y", isa_6502_addressing_absolute_y_indexed },
+                    { { __isa_65C02_ORA, __isa_65C02_static_ORA }, __isa_65C02_disasm_ORA, "ORA", "ORA $XXXX,X", isa_6502_addressing_absolute_x_indexed }
                 },{
                     /* A = 1 */
-                    { __isa_65C02_AND, __isa_65C02_disasm_AND, "AND ($XX,X)", isa_6502_addressing_x_indexed_indirect },
-                    { __isa_65C02_AND, __isa_65C02_disasm_AND, "AND $XX", isa_6502_addressing_zeropage },
-                    { __isa_65C02_AND, __isa_65C02_disasm_AND, "AND #$XX", isa_6502_addressing_immediate },
-                    { __isa_65C02_AND, __isa_65C02_disasm_AND, "AND $XXXX", isa_6502_addressing_absolute },
-                    { __isa_65C02_AND, __isa_65C02_disasm_AND, "AND ($XX),Y", isa_6502_addressing_indirect_y_indexed },
-                    { __isa_65C02_AND, __isa_65C02_disasm_AND, "AND $XX,X", isa_6502_addressing_zeropage_x_indexed },
-                    { __isa_65C02_AND, __isa_65C02_disasm_AND, "AND $XXXX,Y", isa_6502_addressing_absolute_y_indexed },
-                    { __isa_65C02_AND, __isa_65C02_disasm_AND, "AND $XXXX,X", isa_6502_addressing_absolute_x_indexed }
+                    { { __isa_65C02_AND, __isa_65C02_static_AND }, __isa_65C02_disasm_AND, "AND", "AND ($XX,X)", isa_6502_addressing_x_indexed_indirect },
+                    { { __isa_65C02_AND, __isa_65C02_static_AND }, __isa_65C02_disasm_AND, "AND", "AND $XX", isa_6502_addressing_zeropage },
+                    { { __isa_65C02_AND, __isa_65C02_static_AND }, __isa_65C02_disasm_AND, "AND", "AND #$XX", isa_6502_addressing_immediate },
+                    { { __isa_65C02_AND, __isa_65C02_static_AND }, __isa_65C02_disasm_AND, "AND", "AND $XXXX", isa_6502_addressing_absolute },
+                    { { __isa_65C02_AND, __isa_65C02_static_AND }, __isa_65C02_disasm_AND, "AND", "AND ($XX),Y", isa_6502_addressing_indirect_y_indexed },
+                    { { __isa_65C02_AND, __isa_65C02_static_AND }, __isa_65C02_disasm_AND, "AND", "AND $XX,X", isa_6502_addressing_zeropage_x_indexed },
+                    { { __isa_65C02_AND, __isa_65C02_static_AND }, __isa_65C02_disasm_AND, "AND", "AND $XXXX,Y", isa_6502_addressing_absolute_y_indexed },
+                    { { __isa_65C02_AND, __isa_65C02_static_AND }, __isa_65C02_disasm_AND, "AND", "AND $XXXX,X", isa_6502_addressing_absolute_x_indexed }
                 },{
                     /* A = 2 */
-                    { __isa_65C02_EOR, __isa_65C02_disasm_EOR, "EOR ($XX,X)", isa_6502_addressing_x_indexed_indirect },
-                    { __isa_65C02_EOR, __isa_65C02_disasm_EOR, "EOR $XX", isa_6502_addressing_zeropage },
-                    { __isa_65C02_EOR, __isa_65C02_disasm_EOR, "EOR #$XX", isa_6502_addressing_immediate },
-                    { __isa_65C02_EOR, __isa_65C02_disasm_EOR, "EOR $XXXX", isa_6502_addressing_absolute },
-                    { __isa_65C02_EOR, __isa_65C02_disasm_EOR, "EOR ($XX),Y", isa_6502_addressing_indirect_y_indexed },
-                    { __isa_65C02_EOR, __isa_65C02_disasm_EOR, "EOR $XX,X", isa_6502_addressing_zeropage_x_indexed },
-                    { __isa_65C02_EOR, __isa_65C02_disasm_EOR, "EOR $XXXX,Y", isa_6502_addressing_absolute_y_indexed },
-                    { __isa_65C02_EOR, __isa_65C02_disasm_EOR, "EOR $XXXX,X", isa_6502_addressing_absolute_x_indexed }
+                    { { __isa_65C02_EOR, __isa_65C02_static_EOR }, __isa_65C02_disasm_EOR, "EOR", "EOR ($XX,X)", isa_6502_addressing_x_indexed_indirect },
+                    { { __isa_65C02_EOR, __isa_65C02_static_EOR }, __isa_65C02_disasm_EOR, "EOR", "EOR $XX", isa_6502_addressing_zeropage },
+                    { { __isa_65C02_EOR, __isa_65C02_static_EOR }, __isa_65C02_disasm_EOR, "EOR", "EOR #$XX", isa_6502_addressing_immediate },
+                    { { __isa_65C02_EOR, __isa_65C02_static_EOR }, __isa_65C02_disasm_EOR, "EOR", "EOR $XXXX", isa_6502_addressing_absolute },
+                    { { __isa_65C02_EOR, __isa_65C02_static_EOR }, __isa_65C02_disasm_EOR, "EOR", "EOR ($XX),Y", isa_6502_addressing_indirect_y_indexed },
+                    { { __isa_65C02_EOR, __isa_65C02_static_EOR }, __isa_65C02_disasm_EOR, "EOR", "EOR $XX,X", isa_6502_addressing_zeropage_x_indexed },
+                    { { __isa_65C02_EOR, __isa_65C02_static_EOR }, __isa_65C02_disasm_EOR, "EOR", "EOR $XXXX,Y", isa_6502_addressing_absolute_y_indexed },
+                    { { __isa_65C02_EOR, __isa_65C02_static_EOR }, __isa_65C02_disasm_EOR, "EOR", "EOR $XXXX,X", isa_6502_addressing_absolute_x_indexed }
                 },{
                     /* A = 3 */
-                    { __isa_65C02_ADC, __isa_65C02_disasm_ADC, "ADC ($XX,X)", isa_6502_addressing_x_indexed_indirect },
-                    { __isa_65C02_ADC, __isa_65C02_disasm_ADC, "ADC $XX", isa_6502_addressing_zeropage },
-                    { __isa_65C02_ADC, __isa_65C02_disasm_ADC, "ADC #$XX", isa_6502_addressing_immediate },
-                    { __isa_65C02_ADC, __isa_65C02_disasm_ADC, "ADC $XXXX", isa_6502_addressing_absolute },
-                    { __isa_65C02_ADC, __isa_65C02_disasm_ADC, "ADC ($XX),Y", isa_6502_addressing_indirect_y_indexed },
-                    { __isa_65C02_ADC, __isa_65C02_disasm_ADC, "ADC $XX,X", isa_6502_addressing_zeropage_x_indexed },
-                    { __isa_65C02_ADC, __isa_65C02_disasm_ADC, "ADC $XXXX,Y", isa_6502_addressing_absolute_y_indexed },
-                    { __isa_65C02_ADC, __isa_65C02_disasm_ADC, "ADC $XXXX,X", isa_6502_addressing_absolute_x_indexed }
+                    { { __isa_65C02_ADC, __isa_65C02_static_ADC }, __isa_65C02_disasm_ADC, "ADC", "ADC ($XX,X)", isa_6502_addressing_x_indexed_indirect },
+                    { { __isa_65C02_ADC, __isa_65C02_static_ADC }, __isa_65C02_disasm_ADC, "ADC", "ADC $XX", isa_6502_addressing_zeropage },
+                    { { __isa_65C02_ADC, __isa_65C02_static_ADC }, __isa_65C02_disasm_ADC, "ADC", "ADC #$XX", isa_6502_addressing_immediate },
+                    { { __isa_65C02_ADC, __isa_65C02_static_ADC }, __isa_65C02_disasm_ADC, "ADC", "ADC $XXXX", isa_6502_addressing_absolute },
+                    { { __isa_65C02_ADC, __isa_65C02_static_ADC }, __isa_65C02_disasm_ADC, "ADC", "ADC ($XX),Y", isa_6502_addressing_indirect_y_indexed },
+                    { { __isa_65C02_ADC, __isa_65C02_static_ADC }, __isa_65C02_disasm_ADC, "ADC", "ADC $XX,X", isa_6502_addressing_zeropage_x_indexed },
+                    { { __isa_65C02_ADC, __isa_65C02_static_ADC }, __isa_65C02_disasm_ADC, "ADC", "ADC $XXXX,Y", isa_6502_addressing_absolute_y_indexed },
+                    { { __isa_65C02_ADC, __isa_65C02_static_ADC }, __isa_65C02_disasm_ADC, "ADC", "ADC $XXXX,X", isa_6502_addressing_absolute_x_indexed }
                 },{
                     /* A = 4 */
-                    { __isa_65C02_STA, __isa_65C02_disasm_STA, "STA ($XX,X)", isa_6502_addressing_x_indexed_indirect },
-                    { __isa_65C02_STA, __isa_65C02_disasm_STA, "STA $XX", isa_6502_addressing_zeropage },
-                    { __isa_65C02_BIT, __isa_65C02_disasm_BIT, "BIT #$XX", isa_6502_addressing_immediate},
-                    { __isa_65C02_STA, __isa_65C02_disasm_STA, "STA $XXXX", isa_6502_addressing_absolute },
-                    { __isa_65C02_STA, __isa_65C02_disasm_STA, "STA ($XX),Y", isa_6502_addressing_indirect_y_indexed },
-                    { __isa_65C02_STA, __isa_65C02_disasm_STA, "STA $XX,X", isa_6502_addressing_zeropage_x_indexed },
-                    { __isa_65C02_STA, __isa_65C02_disasm_STA, "STA $XXXX,Y", isa_6502_addressing_absolute_y_indexed },
-                    { __isa_65C02_STA, __isa_65C02_disasm_STA, "STA $XXXX,X", isa_6502_addressing_absolute_x_indexed }
+                    { { __isa_65C02_STA, __isa_65C02_static_STA }, __isa_65C02_disasm_STA, "STA", "STA ($XX,X)", isa_6502_addressing_x_indexed_indirect },
+                    { { __isa_65C02_STA, __isa_65C02_static_STA }, __isa_65C02_disasm_STA, "STA", "STA $XX", isa_6502_addressing_zeropage },
+                    { { __isa_65C02_BIT, __isa_65C02_static_BIT }, __isa_65C02_disasm_BIT, "BIT", "BIT #$XX", isa_6502_addressing_immediate},
+                    { { __isa_65C02_STA, __isa_65C02_static_STA }, __isa_65C02_disasm_STA, "STA", "STA $XXXX", isa_6502_addressing_absolute },
+                    { { __isa_65C02_STA, __isa_65C02_static_STA }, __isa_65C02_disasm_STA, "STA", "STA ($XX),Y", isa_6502_addressing_indirect_y_indexed },
+                    { { __isa_65C02_STA, __isa_65C02_static_STA }, __isa_65C02_disasm_STA, "STA", "STA $XX,X", isa_6502_addressing_zeropage_x_indexed },
+                    { { __isa_65C02_STA, __isa_65C02_static_STA }, __isa_65C02_disasm_STA, "STA", "STA $XXXX,Y", isa_6502_addressing_absolute_y_indexed },
+                    { { __isa_65C02_STA, __isa_65C02_static_STA }, __isa_65C02_disasm_STA, "STA", "STA $XXXX,X", isa_6502_addressing_absolute_x_indexed }
                 },{
                     /* A = 5 */
-                    { __isa_65C02_LDA, __isa_65C02_disasm_LDA, "LDA ($XX,X)", isa_6502_addressing_x_indexed_indirect },
-                    { __isa_65C02_LDA, __isa_65C02_disasm_LDA, "LDA $XX", isa_6502_addressing_zeropage },
-                    { __isa_65C02_LDA, __isa_65C02_disasm_LDA, "LDA #$XX", isa_6502_addressing_immediate },
-                    { __isa_65C02_LDA, __isa_65C02_disasm_LDA, "LDA $XXXX", isa_6502_addressing_absolute },
-                    { __isa_65C02_LDA, __isa_65C02_disasm_LDA, "LDA ($XX),Y", isa_6502_addressing_indirect_y_indexed },
-                    { __isa_65C02_LDA, __isa_65C02_disasm_LDA, "LDA $XX,X", isa_6502_addressing_zeropage_x_indexed },
-                    { __isa_65C02_LDA, __isa_65C02_disasm_LDA, "LDA $XXXX,Y", isa_6502_addressing_absolute_y_indexed },
-                    { __isa_65C02_LDA, __isa_65C02_disasm_LDA, "LDA $XXXX,X", isa_6502_addressing_absolute_x_indexed }
+                    { { __isa_65C02_LDA, __isa_65C02_static_LDA }, __isa_65C02_disasm_LDA, "LDA", "LDA ($XX,X)", isa_6502_addressing_x_indexed_indirect },
+                    { { __isa_65C02_LDA, __isa_65C02_static_LDA }, __isa_65C02_disasm_LDA, "LDA", "LDA $XX", isa_6502_addressing_zeropage },
+                    { { __isa_65C02_LDA, __isa_65C02_static_LDA }, __isa_65C02_disasm_LDA, "LDA", "LDA #$XX", isa_6502_addressing_immediate },
+                    { { __isa_65C02_LDA, __isa_65C02_static_LDA }, __isa_65C02_disasm_LDA, "LDA", "LDA $XXXX", isa_6502_addressing_absolute },
+                    { { __isa_65C02_LDA, __isa_65C02_static_LDA }, __isa_65C02_disasm_LDA, "LDA", "LDA ($XX),Y", isa_6502_addressing_indirect_y_indexed },
+                    { { __isa_65C02_LDA, __isa_65C02_static_LDA }, __isa_65C02_disasm_LDA, "LDA", "LDA $XX,X", isa_6502_addressing_zeropage_x_indexed },
+                    { { __isa_65C02_LDA, __isa_65C02_static_LDA }, __isa_65C02_disasm_LDA, "LDA", "LDA $XXXX,Y", isa_6502_addressing_absolute_y_indexed },
+                    { { __isa_65C02_LDA, __isa_65C02_static_LDA }, __isa_65C02_disasm_LDA, "LDA", "LDA $XXXX,X", isa_6502_addressing_absolute_x_indexed }
                 },{
                     /* A = 6 */
-                    { __isa_65C02_CMP, __isa_65C02_disasm_CMP, "CMP ($XX,X)", isa_6502_addressing_x_indexed_indirect },
-                    { __isa_65C02_CMP, __isa_65C02_disasm_CMP, "CMP $XX", isa_6502_addressing_zeropage },
-                    { __isa_65C02_CMP, __isa_65C02_disasm_CMP, "CMP #$XX", isa_6502_addressing_immediate },
-                    { __isa_65C02_CMP, __isa_65C02_disasm_CMP, "CMP $XXXX", isa_6502_addressing_absolute },
-                    { __isa_65C02_CMP, __isa_65C02_disasm_CMP, "CMP ($XX),Y", isa_6502_addressing_indirect_y_indexed },
-                    { __isa_65C02_CMP, __isa_65C02_disasm_CMP, "CMP $XX,X", isa_6502_addressing_zeropage_x_indexed },
-                    { __isa_65C02_CMP, __isa_65C02_disasm_CMP, "CMP $XXXX,Y", isa_6502_addressing_absolute_y_indexed },
-                    { __isa_65C02_CMP, __isa_65C02_disasm_CMP, "CMP $XXXX,X", isa_6502_addressing_absolute_x_indexed }
+                    { { __isa_65C02_CMP, __isa_65C02_static_CMP }, __isa_65C02_disasm_CMP, "CMP", "CMP ($XX,X)", isa_6502_addressing_x_indexed_indirect },
+                    { { __isa_65C02_CMP, __isa_65C02_static_CMP }, __isa_65C02_disasm_CMP, "CMP", "CMP $XX", isa_6502_addressing_zeropage },
+                    { { __isa_65C02_CMP, __isa_65C02_static_CMP }, __isa_65C02_disasm_CMP, "CMP", "CMP #$XX", isa_6502_addressing_immediate },
+                    { { __isa_65C02_CMP, __isa_65C02_static_CMP }, __isa_65C02_disasm_CMP, "CMP", "CMP $XXXX", isa_6502_addressing_absolute },
+                    { { __isa_65C02_CMP, __isa_65C02_static_CMP }, __isa_65C02_disasm_CMP, "CMP", "CMP ($XX),Y", isa_6502_addressing_indirect_y_indexed },
+                    { { __isa_65C02_CMP, __isa_65C02_static_CMP }, __isa_65C02_disasm_CMP, "CMP", "CMP $XX,X", isa_6502_addressing_zeropage_x_indexed },
+                    { { __isa_65C02_CMP, __isa_65C02_static_CMP }, __isa_65C02_disasm_CMP, "CMP", "CMP $XXXX,Y", isa_6502_addressing_absolute_y_indexed },
+                    { { __isa_65C02_CMP, __isa_65C02_static_CMP }, __isa_65C02_disasm_CMP, "CMP", "CMP $XXXX,X", isa_6502_addressing_absolute_x_indexed }
                 },{
                     /* A = 7 */
-                    { __isa_65C02_SBC, __isa_65C02_disasm_SBC, "SBC ($XX,X)", isa_6502_addressing_x_indexed_indirect },
-                    { __isa_65C02_SBC, __isa_65C02_disasm_SBC, "SBC $XX", isa_6502_addressing_zeropage },
-                    { __isa_65C02_SBC, __isa_65C02_disasm_SBC, "SBC #$XX", isa_6502_addressing_immediate },
-                    { __isa_65C02_SBC, __isa_65C02_disasm_SBC, "SBC $XXXX", isa_6502_addressing_absolute },
-                    { __isa_65C02_SBC, __isa_65C02_disasm_SBC, "SBC ($XX),Y", isa_6502_addressing_indirect_y_indexed },
-                    { __isa_65C02_SBC, __isa_65C02_disasm_SBC, "SBC $XX,X", isa_6502_addressing_zeropage_x_indexed },
-                    { __isa_65C02_SBC, __isa_65C02_disasm_SBC, "SBC $XXXX,Y", isa_6502_addressing_absolute_y_indexed },
-                    { __isa_65C02_SBC, __isa_65C02_disasm_SBC, "SBC $XXXX,X", isa_6502_addressing_absolute_x_indexed }
+                    { { __isa_65C02_SBC, __isa_65C02_static_SBC }, __isa_65C02_disasm_SBC, "SBC", "SBC ($XX,X)", isa_6502_addressing_x_indexed_indirect },
+                    { { __isa_65C02_SBC, __isa_65C02_static_SBC }, __isa_65C02_disasm_SBC, "SBC", "SBC $XX", isa_6502_addressing_zeropage },
+                    { { __isa_65C02_SBC, __isa_65C02_static_SBC }, __isa_65C02_disasm_SBC, "SBC", "SBC #$XX", isa_6502_addressing_immediate },
+                    { { __isa_65C02_SBC, __isa_65C02_static_SBC }, __isa_65C02_disasm_SBC, "SBC", "SBC $XXXX", isa_6502_addressing_absolute },
+                    { { __isa_65C02_SBC, __isa_65C02_static_SBC }, __isa_65C02_disasm_SBC, "SBC", "SBC ($XX),Y", isa_6502_addressing_indirect_y_indexed },
+                    { { __isa_65C02_SBC, __isa_65C02_static_SBC }, __isa_65C02_disasm_SBC, "SBC", "SBC $XX,X", isa_6502_addressing_zeropage_x_indexed },
+                    { { __isa_65C02_SBC, __isa_65C02_static_SBC }, __isa_65C02_disasm_SBC, "SBC", "SBC $XXXX,Y", isa_6502_addressing_absolute_y_indexed },
+                    { { __isa_65C02_SBC, __isa_65C02_static_SBC }, __isa_65C02_disasm_SBC, "SBC", "SBC $XXXX,X", isa_6502_addressing_absolute_x_indexed }
                 }
             },{
                 /* C = 2 */
                 {
                     /* A = 0 */
                     UNUSED_OPCODE,
-                    { __isa_65C02_ASL, __isa_65C02_disasm_ASL, "ASL $XX", isa_6502_addressing_zeropage },
-                    { __isa_65C02_ASL, __isa_65C02_disasm_ASL, "ASL A", isa_6502_addressing_accumulator },
-                    { __isa_65C02_ASL, __isa_65C02_disasm_ASL, "ASL $XXXX", isa_6502_addressing_absolute },
-                    { __isa_65C02_ORA, __isa_65C02_disasm_ORA, "ORA ($XX)", isa_6502_addressing_zeropage_indirect },
-                    { __isa_65C02_ASL, __isa_65C02_disasm_ASL, "ASL $XX,X", isa_6502_addressing_zeropage_x_indexed },
-                    { __isa_65C02_INC, __isa_65C02_disasm_INC, "INC A", isa_6502_addressing_accumulator },
-                    { __isa_65C02_ASL, __isa_65C02_disasm_ASL, "ASL $XXXX,X", isa_6502_addressing_absolute_x_indexed }
+                    { { __isa_65C02_ASL, __isa_65C02_static_ASL }, __isa_65C02_disasm_ASL, "ASL", "ASL $XX", isa_6502_addressing_zeropage },
+                    { { __isa_65C02_ASL, __isa_65C02_static_ASL }, __isa_65C02_disasm_ASL, "ASL", "ASL A", isa_6502_addressing_accumulator },
+                    { { __isa_65C02_ASL, __isa_65C02_static_ASL }, __isa_65C02_disasm_ASL, "ASL", "ASL $XXXX", isa_6502_addressing_absolute },
+                    { { __isa_65C02_ORA, __isa_65C02_static_ORA }, __isa_65C02_disasm_ORA, "ORA", "ORA ($XX)", isa_6502_addressing_zeropage_indirect },
+                    { { __isa_65C02_ASL, __isa_65C02_static_ASL }, __isa_65C02_disasm_ASL, "ASL", "ASL $XX,X", isa_6502_addressing_zeropage_x_indexed },
+                    { { __isa_65C02_INC, __isa_65C02_static_INC }, __isa_65C02_disasm_INC, "INC", "INC A", isa_6502_addressing_accumulator },
+                    { { __isa_65C02_ASL, __isa_65C02_static_ASL }, __isa_65C02_disasm_ASL, "ASL", "ASL $XXXX,X", isa_6502_addressing_absolute_x_indexed }
                 },{
                     /* A = 1 */
                     UNUSED_OPCODE,
-                    { __isa_65C02_ROL, __isa_65C02_disasm_ROL, "ROL $XX", isa_6502_addressing_zeropage },
-                    { __isa_65C02_ROL, __isa_65C02_disasm_ROL, "ROL A", isa_6502_addressing_accumulator },
-                    { __isa_65C02_ROL, __isa_65C02_disasm_ROL, "ROL $XXXX", isa_6502_addressing_absolute },
-                    { __isa_65C02_AND, __isa_65C02_disasm_AND, "AND ($XX)", isa_6502_addressing_zeropage_indirect },
-                    { __isa_65C02_ROL, __isa_65C02_disasm_ROL, "ROL $XX,X", isa_6502_addressing_zeropage_x_indexed },
-                    { __isa_65C02_DEC, __isa_65C02_disasm_DEC, "DEC A", isa_6502_addressing_accumulator },
-                    { __isa_65C02_ROL, __isa_65C02_disasm_ROL, "ROL $XXXX,X", isa_6502_addressing_absolute_x_indexed }
+                    { { __isa_65C02_ROL, __isa_65C02_static_ROL }, __isa_65C02_disasm_ROL, "ROL", "ROL $XX", isa_6502_addressing_zeropage },
+                    { { __isa_65C02_ROL, __isa_65C02_static_ROL }, __isa_65C02_disasm_ROL, "ROL", "ROL A", isa_6502_addressing_accumulator },
+                    { { __isa_65C02_ROL, __isa_65C02_static_ROL }, __isa_65C02_disasm_ROL, "ROL", "ROL $XXXX", isa_6502_addressing_absolute },
+                    { { __isa_65C02_AND, __isa_65C02_static_AND }, __isa_65C02_disasm_AND, "AND", "AND ($XX)", isa_6502_addressing_zeropage_indirect },
+                    { { __isa_65C02_ROL, __isa_65C02_static_ROL }, __isa_65C02_disasm_ROL, "ROL", "ROL $XX,X", isa_6502_addressing_zeropage_x_indexed },
+                    { { __isa_65C02_DEC, __isa_65C02_static_DEC }, __isa_65C02_disasm_DEC, "DEC", "DEC A", isa_6502_addressing_accumulator },
+                    { { __isa_65C02_ROL, __isa_65C02_static_ROL }, __isa_65C02_disasm_ROL, "ROL", "ROL $XXXX,X", isa_6502_addressing_absolute_x_indexed }
                 },{
                     /* A = 2 */
                     UNUSED_OPCODE,
-                    { __isa_65C02_LSR, __isa_65C02_disasm_LSR, "LSR $XX", isa_6502_addressing_zeropage },
-                    { __isa_65C02_LSR, __isa_65C02_disasm_LSR, "LSR A", isa_6502_addressing_accumulator },
-                    { __isa_65C02_LSR, __isa_65C02_disasm_LSR, "LSR $XXXX", isa_6502_addressing_absolute },
-                    { __isa_65C02_EOR, __isa_65C02_disasm_EOR, "EOR ($XX)", isa_6502_addressing_zeropage_indirect },
-                    { __isa_65C02_LSR, __isa_65C02_disasm_LSR, "LSR $XX,X", isa_6502_addressing_zeropage_x_indexed },
-                    { __isa_65C02_PHY, __isa_65C02_disasm_PHY, "PHY", isa_6502_addressing_implied },
-                    { __isa_65C02_LSR, __isa_65C02_disasm_LSR, "LSR $XXXX,X", isa_6502_addressing_absolute_x_indexed }
+                    { { __isa_65C02_LSR, __isa_65C02_static_LSR }, __isa_65C02_disasm_LSR, "LSR", "LSR $XX", isa_6502_addressing_zeropage },
+                    { { __isa_65C02_LSR, __isa_65C02_static_LSR }, __isa_65C02_disasm_LSR, "LSR", "LSR A", isa_6502_addressing_accumulator },
+                    { { __isa_65C02_LSR, __isa_65C02_static_LSR }, __isa_65C02_disasm_LSR, "LSR", "LSR $XXXX", isa_6502_addressing_absolute },
+                    { { __isa_65C02_EOR, __isa_65C02_static_EOR }, __isa_65C02_disasm_EOR, "EOR", "EOR ($XX)", isa_6502_addressing_zeropage_indirect },
+                    { { __isa_65C02_LSR, __isa_65C02_static_LSR }, __isa_65C02_disasm_LSR, "LSR", "LSR $XX,X", isa_6502_addressing_zeropage_x_indexed },
+                    { { __isa_65C02_PHY, __isa_65C02_static_PHY }, __isa_65C02_disasm_PHY, "PHY", "PHY", isa_6502_addressing_implied },
+                    { { __isa_65C02_LSR, __isa_65C02_static_LSR }, __isa_65C02_disasm_LSR, "LSR", "LSR $XXXX,X", isa_6502_addressing_absolute_x_indexed }
                 },{
                     /* A = 3 */
                     UNUSED_OPCODE,
-                    { __isa_65C02_ROR, __isa_65C02_disasm_ROR, "ROR $XX", isa_6502_addressing_zeropage },
-                    { __isa_65C02_ROR, __isa_65C02_disasm_ROR, "ROR A", isa_6502_addressing_accumulator },
-                    { __isa_65C02_ROR, __isa_65C02_disasm_ROR, "ROR $XXXX", isa_6502_addressing_absolute },
-                    { __isa_65C02_ADC, __isa_65C02_disasm_ADC, "ADC ($XX)", isa_6502_addressing_zeropage_indirect },
-                    { __isa_65C02_ROR, __isa_65C02_disasm_ROR, "ROR $XX,X", isa_6502_addressing_zeropage_x_indexed },
-                    { __isa_65C02_PLY, __isa_65C02_disasm_PLY, "PLY", isa_6502_addressing_implied },
-                    { __isa_65C02_ROR, __isa_65C02_disasm_ROR, "ROR $XXXX,X", isa_6502_addressing_absolute_x_indexed }
+                    { { __isa_65C02_ROR, __isa_65C02_static_ROR }, __isa_65C02_disasm_ROR, "ROR", "ROR $XX", isa_6502_addressing_zeropage },
+                    { { __isa_65C02_ROR, __isa_65C02_static_ROR }, __isa_65C02_disasm_ROR, "ROR", "ROR A", isa_6502_addressing_accumulator },
+                    { { __isa_65C02_ROR, __isa_65C02_static_ROR }, __isa_65C02_disasm_ROR, "ROR", "ROR $XXXX", isa_6502_addressing_absolute },
+                    { { __isa_65C02_ADC, __isa_65C02_static_ADC }, __isa_65C02_disasm_ADC, "ADC", "ADC ($XX)", isa_6502_addressing_zeropage_indirect },
+                    { { __isa_65C02_ROR, __isa_65C02_static_ROR }, __isa_65C02_disasm_ROR, "ROR", "ROR $XX,X", isa_6502_addressing_zeropage_x_indexed },
+                    { { __isa_65C02_PLY, __isa_65C02_static_PLY }, __isa_65C02_disasm_PLY, "PLY", "PLY", isa_6502_addressing_implied },
+                    { { __isa_65C02_ROR, __isa_65C02_static_ROR }, __isa_65C02_disasm_ROR, "ROR", "ROR $XXXX,X", isa_6502_addressing_absolute_x_indexed }
                 },{
                     /* A = 4 */
                     UNUSED_OPCODE,
-                    { __isa_65C02_STX, __isa_65C02_disasm_STX, "STX $XX", isa_6502_addressing_zeropage },
-                    { __isa_65C02_TXA, __isa_65C02_disasm_TXA, "TXA", isa_6502_addressing_implied },
-                    { __isa_65C02_STX, __isa_65C02_disasm_STX, "STX $XXXX", isa_6502_addressing_absolute },
-                    { __isa_65C02_STA, __isa_65C02_disasm_STA, "STA ($XX)", isa_6502_addressing_zeropage_indirect },
-                    { __isa_65C02_STX, __isa_65C02_disasm_STX, "STX $XX,Y", isa_6502_addressing_zeropage_y_indexed },
-                    { __isa_65C02_TXS, __isa_65C02_disasm_TXS, "TXS", isa_6502_addressing_implied },
-                    { __isa_65C02_STZ, __isa_65C02_disasm_STZ, "STZ $XXXX,X", isa_6502_addressing_absolute_x_indexed }
+                    { { __isa_65C02_STX, __isa_65C02_static_STX }, __isa_65C02_disasm_STX, "STX", "STX $XX", isa_6502_addressing_zeropage },
+                    { { __isa_65C02_TXA, __isa_65C02_static_TXA }, __isa_65C02_disasm_TXA, "TXA", "TXA", isa_6502_addressing_implied },
+                    { { __isa_65C02_STX, __isa_65C02_static_STX }, __isa_65C02_disasm_STX, "STX", "STX $XXXX", isa_6502_addressing_absolute },
+                    { { __isa_65C02_STA, __isa_65C02_static_STA }, __isa_65C02_disasm_STA, "STA", "STA ($XX)", isa_6502_addressing_zeropage_indirect },
+                    { { __isa_65C02_STX, __isa_65C02_static_STX }, __isa_65C02_disasm_STX, "STX", "STX $XX,Y", isa_6502_addressing_zeropage_y_indexed },
+                    { { __isa_65C02_TXS, __isa_65C02_static_TXS }, __isa_65C02_disasm_TXS, "TXS", "TXS", isa_6502_addressing_implied },
+                    { { __isa_65C02_STZ, __isa_65C02_static_STZ }, __isa_65C02_disasm_STZ, "STZ", "STZ $XXXX,X", isa_6502_addressing_absolute_x_indexed }
                 },{
                     /* A = 5 */
-                    { __isa_65C02_LDX, __isa_65C02_disasm_LDX, "LDX #$XX", isa_6502_addressing_immediate },
-                    { __isa_65C02_LDX, __isa_65C02_disasm_LDX, "LDX $XX", isa_6502_addressing_zeropage },
-                    { __isa_65C02_TAX, __isa_65C02_disasm_TAX, "TAX", isa_6502_addressing_implied },
-                    { __isa_65C02_LDX, __isa_65C02_disasm_LDX, "LDX $XXXX", isa_6502_addressing_absolute },
-                    { __isa_65C02_LDA, __isa_65C02_disasm_LDA, "LDA ($XX)", isa_6502_addressing_zeropage_indirect },
-                    { __isa_65C02_LDX, __isa_65C02_disasm_LDX, "LDX $XX,Y", isa_6502_addressing_zeropage_y_indexed },
-                    { __isa_65C02_TSX, __isa_65C02_disasm_TSX, "TSX", isa_6502_addressing_implied },
-                    { __isa_65C02_LDX, __isa_65C02_disasm_LDX, "LDX $XXXX,Y", isa_6502_addressing_absolute_y_indexed }
+                    { { __isa_65C02_LDX, __isa_65C02_static_LDX }, __isa_65C02_disasm_LDX, "LDX", "LDX #$XX", isa_6502_addressing_immediate },
+                    { { __isa_65C02_LDX, __isa_65C02_static_LDX }, __isa_65C02_disasm_LDX, "LDX", "LDX $XX", isa_6502_addressing_zeropage },
+                    { { __isa_65C02_TAX, __isa_65C02_static_TAX }, __isa_65C02_disasm_TAX, "TAX", "TAX", isa_6502_addressing_implied },
+                    { { __isa_65C02_LDX, __isa_65C02_static_LDX }, __isa_65C02_disasm_LDX, "LDX", "LDX $XXXX", isa_6502_addressing_absolute },
+                    { { __isa_65C02_LDA, __isa_65C02_static_LDA }, __isa_65C02_disasm_LDA, "LDA", "LDA ($XX)", isa_6502_addressing_zeropage_indirect },
+                    { { __isa_65C02_LDX, __isa_65C02_static_LDX }, __isa_65C02_disasm_LDX, "LDX", "LDX $XX,Y", isa_6502_addressing_zeropage_y_indexed },
+                    { { __isa_65C02_TSX, __isa_65C02_static_TSX }, __isa_65C02_disasm_TSX, "TSX", "TSX", isa_6502_addressing_implied },
+                    { { __isa_65C02_LDX, __isa_65C02_static_LDX }, __isa_65C02_disasm_LDX, "LDX", "LDX $XXXX,Y", isa_6502_addressing_absolute_y_indexed }
                 },{
                     /* A = 6 */
                     UNUSED_OPCODE,
-                    { __isa_65C02_DEC, __isa_65C02_disasm_DEC, "DEC $XX", isa_6502_addressing_zeropage },
-                    { __isa_65C02_DEX, __isa_65C02_disasm_DEX, "DEX", isa_6502_addressing_implied },
-                    { __isa_65C02_DEC, __isa_65C02_disasm_DEC, "DEC $XXXX", isa_6502_addressing_absolute },
-                    { __isa_65C02_CMP, __isa_65C02_disasm_CMP, "CMP ($XX)", isa_6502_addressing_zeropage_indirect },
-                    { __isa_65C02_DEC, __isa_65C02_disasm_DEC, "DEC $XX,X", isa_6502_addressing_zeropage_x_indexed },
-                    { __isa_65C02_PHX, __isa_65C02_disasm_PHX, "PHX", isa_6502_addressing_implied },
-                    { __isa_65C02_DEC, __isa_65C02_disasm_DEC, "DEC $XXXX,X", isa_6502_addressing_absolute_x_indexed }
+                    { { __isa_65C02_DEC, __isa_65C02_static_DEC }, __isa_65C02_disasm_DEC, "DEC", "DEC $XX", isa_6502_addressing_zeropage },
+                    { { __isa_65C02_DEX, __isa_65C02_static_DEX }, __isa_65C02_disasm_DEX, "DEX", "DEX", isa_6502_addressing_implied },
+                    { { __isa_65C02_DEC, __isa_65C02_static_DEC }, __isa_65C02_disasm_DEC, "DEC", "DEC $XXXX", isa_6502_addressing_absolute },
+                    { { __isa_65C02_CMP, __isa_65C02_static_CMP }, __isa_65C02_disasm_CMP, "CMP", "CMP ($XX)", isa_6502_addressing_zeropage_indirect },
+                    { { __isa_65C02_DEC, __isa_65C02_static_DEC }, __isa_65C02_disasm_DEC, "DEC", "DEC $XX,X", isa_6502_addressing_zeropage_x_indexed },
+                    { { __isa_65C02_PHX, __isa_65C02_static_PHX }, __isa_65C02_disasm_PHX, "PHX", "PHX", isa_6502_addressing_implied },
+                    { { __isa_65C02_DEC, __isa_65C02_static_DEC }, __isa_65C02_disasm_DEC, "DEC", "DEC $XXXX,X", isa_6502_addressing_absolute_x_indexed }
                 },{
                     /* A = 7 */
                     UNUSED_OPCODE,
-                    { __isa_65C02_INC, __isa_65C02_disasm_INC, "INC $XX", isa_6502_addressing_zeropage },
-                    { __isa_65C02_NOP, __isa_65C02_disasm_NOP, "NOP", isa_6502_addressing_implied },
-                    { __isa_65C02_INC, __isa_65C02_disasm_INC, "INC $XXXX", isa_6502_addressing_absolute },
-                    { __isa_65C02_SBC, __isa_65C02_disasm_SBC, "SBC ($XX)", isa_6502_addressing_zeropage_indirect },
-                    { __isa_65C02_INC, __isa_65C02_disasm_INC, "INC $XX,X", isa_6502_addressing_zeropage_x_indexed },
-                    { __isa_65C02_PLX, __isa_65C02_disasm_PLX, "PLX", isa_6502_addressing_implied },
-                    { __isa_65C02_INC, __isa_65C02_disasm_INC, "INC $XXXX,X", isa_6502_addressing_absolute_x_indexed }
+                    { { __isa_65C02_INC, __isa_65C02_static_INC }, __isa_65C02_disasm_INC, "INC", "INC $XX", isa_6502_addressing_zeropage },
+                    { { __isa_65C02_NOP, __isa_65C02_static_NOP }, __isa_65C02_disasm_NOP, "NOP", "NOP", isa_6502_addressing_implied },
+                    { { __isa_65C02_INC, __isa_65C02_static_INC }, __isa_65C02_disasm_INC, "INC", "INC $XXXX", isa_6502_addressing_absolute },
+                    { { __isa_65C02_SBC, __isa_65C02_static_SBC }, __isa_65C02_disasm_SBC, "SBC", "SBC ($XX)", isa_6502_addressing_zeropage_indirect },
+                    { { __isa_65C02_INC, __isa_65C02_static_INC }, __isa_65C02_disasm_INC, "INC", "INC $XX,X", isa_6502_addressing_zeropage_x_indexed },
+                    { { __isa_65C02_PLX, __isa_65C02_static_PLX }, __isa_65C02_disasm_PLX, "PLX", "PLX", isa_6502_addressing_implied },
+                    { { __isa_65C02_INC, __isa_65C02_static_INC }, __isa_65C02_disasm_INC, "INC", "INC $XXXX,X", isa_6502_addressing_absolute_x_indexed }
                 }
             }
         }
@@ -842,6 +882,69 @@ isa_6502_table_lookup_dispatch(
 )
 {
     return &isa_table->table[opcode->FIELDS.C][opcode->FIELDS.A][opcode->FIELDS.B];
+}
+
+//
+
+void
+isa_6502_static_disassembly(
+    isa_6502_table_t    *isa_table,
+    membus_t            *the_membus,
+    memory_addr_range_t addr_range,
+    FILE                *stream
+)
+{
+    static const char*  instr_fmts[] = {
+                "$%1$04hX : %2$02hhX           %3$-3s A\n",
+                "$%1$04hX : %2$02hhX %4$02hhX %6$02hhX     %3$-3s $%5$04hX\n",
+                "$%1$04hX : %2$02hhX %4$02hhX %6$02hhX     %3$-3s $%5$04hX,X\n",
+                "$%1$04hX : %2$02hhX %4$02hhX %6$02hhX     %3$-3s $%5$04hX,Y\n",
+                "$%1$04hX : %2$02hhX %4$02hhX        %3$-3s #$%4$02hhX\n",
+                "$%1$04hX : %2$02hhX           %3$-3s\n",
+                "$%1$04hX : %2$02hhX %4$02hhX %6$02hhX     %3$-3s ($%5$04hX)\n",
+                "$%1$04hX : %2$02hhX %4$02hhX        %3$-3s ($%4$02hhX,X)\n",
+                "$%1$04hX : %2$02hhX %4$02hhX        %3$-3s ($%4$02hhX),Y\n",
+                "$%1$04hX : %2$02hhX %4$02hhX        %3$-3s *%4$+hhd ($%7$04hX)\n",
+                "$%1$04hX : %2$02hhX %4$02hhX        %3$-3s $%4$02hhX\n",
+                "$%1$04hX : %2$02hhX %4$02hhX        %3$-3s $%4$02hhX,X\n",
+                "$%1$04hX : %2$02hhX %4$02hhX        %3$-3s $%4$02hhX,Y\n",
+                "$%1$04hX : %2$02hhX %4$02hhX        %3$-3s ($%4$02hhX)\n",
+                "$%1$04hX : %2$02hhX %4$02hhX %6$02hhX     %3$-3s ($%5$04hX,X)\n",
+                NULL
+        };
+    uint16_t            addr = addr_range.addr_lo;
+    uint32_t            addr_end = addr + addr_range.addr_len;
+    isa_6502_opcode_t   opcode;
+    uint16_t            operand;
+    
+    while ( addr < addr_end ) {
+        isa_6502_opcode_dispatch_t  *dispatch_record;
+        uint8_t                     instr_bytes;
+        uint8_t                     low_byte;
+        const char                  *instr_fmt;
+        
+        opcode.BYTE = membus_read_addr(the_membus, addr);
+        dispatch_record = &isa_table->table[opcode.FIELDS.C][opcode.FIELDS.A][opcode.FIELDS.B];
+        if ( dispatch_record->addressing_mode == isa_6502_addressing_undefined ) {
+            fprintf(stdout, "$%1$04hX : %2$02hhX         .BYTE $%2$02hhX\n", addr++, opcode.BYTE);
+            continue;
+        }
+        instr_bytes = isa_6502_addressing_operand_counts[dispatch_record->addressing_mode];
+        if ( instr_bytes ) {
+            operand = membus_read_addr(the_membus, addr + 1);
+            low_byte = operand;
+            if ( instr_bytes > 1 ) operand |= membus_read_addr(the_membus, addr + 2) << 8;
+        }
+        fprintf(stdout, instr_fmts[dispatch_record->addressing_mode],
+                    addr,
+                    opcode.BYTE,
+                    dispatch_record->mnemonic,
+                    (uint8_t)operand,
+                    operand,
+                    (uint8_t)((operand & 0xFF00) >> 8),
+                    addr + 1 + instr_bytes + *((int8_t*)&operand));
+        addr += 1 + instr_bytes;
+    }
 }
 
 //

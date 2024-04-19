@@ -17,6 +17,13 @@ ISA_65C02_INSTR(PHX)
     return at_stage;
 }
 
+ISA_65C02_STATIC_INSTR(PHX)
+{
+    __isa_6502_push(opcode_context->registers, opcode_context->memory, opcode_context->registers->X);
+    opcode_context->cycle_count += 2;
+    return isa_6502_instr_stage_end;
+}
+
 ISA_65C02_DISASM(PHX)
 {
 #ifdef ENABLE_DISASSEMBLY

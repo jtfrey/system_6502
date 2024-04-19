@@ -17,6 +17,13 @@ ISA_6502_INSTR(PHA)
     return at_stage;
 }
 
+ISA_6502_STATIC_INSTR(PHA)
+{
+    __isa_6502_push(opcode_context->registers, opcode_context->memory, opcode_context->registers->A);
+    opcode_context->cycle_count += 2;
+    return isa_6502_instr_stage_end;
+}
+
 ISA_6502_DISASM(PHA)
 {
 #ifdef ENABLE_DISASSEMBLY

@@ -1,3 +1,4 @@
 
 #define __isa_65C02_CPX __isa_6502_CPX
+#define __isa_65C02_static_CPX __isa_6502_static_CPX
 #define __isa_65C02_disasm_CPX __isa_6502_disasm_CPX

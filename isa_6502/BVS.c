@@ -1,37 +1,43 @@
 
 ISA_6502_INSTR(BVS)
 {
-    static uint16_t     ADDR = 0x0000;
+    static uint16_t     ADDR16;
     static uint8_t      DELTA;
-       
+    
+    if ( ! registers_SR_get_bit(opcode_context->registers, register_SR_Bit_V) ) {
+        DELTA = membus_read_addr(opcode_context->memory, opcode_context->registers->PC++);
+        return isa_6502_instr_stage_end;
+    }
     at_stage = isa_6502_instr_stage_next_cycle;
     
     switch ( opcode_context->cycle_count ) {
         case 1:
-            ADDR = 0x0000;
-            DELTA = membus_read_addr(opcode_context->memory, opcode_context->registers->PC++); 
+            DELTA = membus_read_addr(opcode_context->memory, opcode_context->registers->PC++);
             break;
         
         case 2:
-            if ( DELTA & 0x80 ) {
-                DELTA = (~DELTA + 1);
-                ADDR = opcode_context->registers->PC - DELTA;
-            } else {
-                ADDR = opcode_context->registers->PC + DELTA;
-            }
-            if ( (ADDR & 0xFF00) == (opcode_context->registers->PC & 0xFF00) ) {
-                at_stage = isa_6502_instr_stage_end;
-            }
+            ADDR16 = opcode_context->registers->PC + *((int8_t*)&DELTA);
+            if ( (ADDR16 & 0xFF00) == (opcode_context->registers->PC & 0xFF00) ) at_stage = isa_6502_instr_stage_end;
             break;
         
         case 3:
             at_stage = isa_6502_instr_stage_end;
             break;
     }
-    if ( at_stage == isa_6502_instr_stage_end ) {
-        if ( registers_SR_get_bit(opcode_context->registers, register_SR_Bit_V) ) opcode_context->registers->PC = ADDR;
-    }
+    if ( at_stage == isa_6502_instr_stage_end ) opcode_context->registers->PC = ADDR16;
     return at_stage;
+}
+
+ISA_6502_STATIC_INSTR(BVS)
+{
+    uint8_t         DELTA = membus_read_addr(opcode_context->memory, opcode_context->registers->PC++);
+    if ( registers_SR_get_bit(opcode_context->registers, register_SR_Bit_V) ) {
+        uint16_t        ADDR16 = opcode_context->registers->PC + *((int8_t*)&DELTA);
+        opcode_context->cycle_count += 2 + ((ADDR16 & 0xFF00) != (opcode_context->registers->PC & 0xFF00));
+    } else {
+        opcode_context->cycle_count++;
+    }
+    return isa_6502_instr_stage_end;
 }
 
 ISA_6502_DISASM(BVS)

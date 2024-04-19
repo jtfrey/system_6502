@@ -1,3 +1,4 @@
 
 #define __isa_65C02_CLV __isa_6502_CLV
+#define __isa_65C02_static_CLV __isa_6502_static_CLV
 #define __isa_65C02_disasm_CLV __isa_6502_disasm_CLV

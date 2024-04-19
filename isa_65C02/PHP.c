@@ -1,3 +1,4 @@
 
 #define __isa_65C02_PHP __isa_6502_PHP
+#define __isa_65C02_static_PHP __isa_6502_static_PHP
 #define __isa_65C02_disasm_PHP __isa_6502_disasm_PHP

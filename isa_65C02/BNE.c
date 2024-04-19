@@ -1,3 +1,4 @@
 
 #define __isa_65C02_BNE __isa_6502_BNE
+#define __isa_65C02_static_BNE __isa_6502_static_BNE
 #define __isa_65C02_disasm_BNE __isa_6502_disasm_BNE

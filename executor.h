@@ -145,6 +145,7 @@ void executor_stage_callback_default(executor_t *the_executor, isa_6502_instr_st
  */
 uint64_t executor_launch_at_address(
                 executor_t                  *the_executor,
+                isa_6502_opcode_exec_mode_t exec_mode,
                 executor_stage_callback_t   callback_fn,
                 isa_6502_instr_stage_t      callback_stage_mask,
                 uint16_t                    PC
@@ -163,6 +164,7 @@ uint64_t executor_launch_at_address(
  */
 uint64_t executor_launch_in_address_range(
                 executor_t                  *the_executor,
+                isa_6502_opcode_exec_mode_t exec_mode,
                 executor_stage_callback_t   callback_fn,
                 isa_6502_instr_stage_t      callback_stage_mask,
                 memory_addr_range_t         addr_range,
@@ -183,6 +185,7 @@ uint64_t executor_launch_in_address_range(
  */
 uint64_t executor_soft_reset(
                 executor_t                  *the_executor,
+                isa_6502_opcode_exec_mode_t exec_mode,
                 executor_stage_callback_t   callback_fn,
                 isa_6502_instr_stage_t      callback_stage_mask
             );

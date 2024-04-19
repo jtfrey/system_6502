@@ -1,3 +1,4 @@
 
 #define __isa_65C02_SED __isa_6502_SED
+#define __isa_65C02_static_SED __isa_6502_static_SED
 #define __isa_65C02_disasm_SED __isa_6502_disasm_SED

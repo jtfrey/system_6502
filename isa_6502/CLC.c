@@ -5,6 +5,13 @@ ISA_6502_INSTR(CLC)
     return isa_6502_instr_stage_end;
 }
 
+ISA_6502_STATIC_INSTR(CLC)
+{
+    opcode_context->cycle_count++;
+    registers_SR_set_bit(opcode_context->registers, register_SR_Bit_C, 0);
+    return isa_6502_instr_stage_end;
+}
+
 ISA_6502_DISASM(CLC)
 {
 #ifdef ENABLE_DISASSEMBLY

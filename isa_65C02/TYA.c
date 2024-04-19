@@ -1,3 +1,4 @@
 
 #define __isa_65C02_TYA __isa_6502_TYA
+#define __isa_65C02_static_TYA __isa_6502_static_TYA
 #define __isa_65C02_disasm_TYA __isa_6502_disasm_TYA

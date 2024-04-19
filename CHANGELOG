@@ -10,7 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Memory cache (last 8 bytes read, written)
-- Instruction disassembly callback
+- Disassembly
+    - Inline (as-executing) disassembly with pertinent values displayed
+    - Static listing from memory range
 - JMP page-roll bug
 - Generic and ranged-address memory watchpoints implemented
 - Per-ISA NMI/IRQ/RESET dispatch functions added
@@ -18,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - When set, execution pipeline is hijacked and NMI/IRQ callback is cycled
 - 65C02 ISA implementation and dispatch table added
 - DMA interface added to executor
+- Alternative static (non-staged) variants of instruction callbacks (faster execution)
 
 
 ## [1.0.0] - 2024-03-26

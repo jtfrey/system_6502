@@ -1,3 +1,4 @@
 
 #define __isa_65C02_PLA __isa_6502_PLA
+#define __isa_65C02_static_PLA __isa_6502_static_PLA
 #define __isa_65C02_disasm_PLA __isa_6502_disasm_PLA

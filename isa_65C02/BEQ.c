@@ -1,3 +1,4 @@
 
 #define __isa_65C02_BEQ __isa_6502_BEQ
+#define __isa_65C02_static_BEQ __isa_6502_static_BEQ
 #define __isa_65C02_disasm_BEQ __isa_6502_disasm_BEQ
